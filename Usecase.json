@@ -1,0 +1,400 @@
+{
+  "version": "31.4.1",
+  "pages": [
+    {
+      "id": "4hhBtjll7_-ahEiDMVW6",
+      "name": "Use Case Diagram",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-1",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Resource Request System"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-2",
+          "type": "node",
+          "parent": "1",
+          "label": "Lab Member"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-3",
+          "type": "node",
+          "parent": "1",
+          "label": "TA"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-4",
+          "type": "node",
+          "parent": "1",
+          "label": "Lecturer /\nLab Manager",
+          "html": "Lecturer /<br>Lab Manager"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-5",
+          "type": "node",
+          "parent": "1",
+          "label": "System\nAdministrator",
+          "html": "System<br>Administrator"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-6",
+          "type": "node",
+          "parent": "1",
+          "label": "External Visitor"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-7",
+          "type": "node",
+          "parent": "1",
+          "label": "Registered User"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-8",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-1\nSubmit Request",
+          "html": "UC-1<br>Submit Request"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-9",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-5\nView My Requests / Track Status",
+          "html": "UC-5<br>View My Requests / Track Status"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-10",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-12\nUpdate Own Request",
+          "html": "UC-12<br>Update Own Request"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-11",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-2\nView Request Queue",
+          "html": "UC-2<br>View Request Queue"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-12",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-3\nAssign Request to Self / Others",
+          "html": "UC-3<br>Assign Request to Self / Others"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-13",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-4\nUpdate Request Status",
+          "html": "UC-4<br>Update Request Status"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-14",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-6\nClose Request",
+          "html": "UC-6<br>Close Request"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-15",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-13\nSubmit Request on Behalf of Collaborator",
+          "html": "UC-13<br>Submit Request on Behalf of Collaborator"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-16",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-7\nView Dashboard / Reports",
+          "html": "UC-7<br>View Dashboard / Reports"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-17",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-8\nApprove / Reject Request",
+          "html": "UC-8<br>Approve / Reject Request"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-18",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-9\nManage User Accounts & Permissions",
+          "html": "UC-9<br>Manage User Accounts & Permissions"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-19",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-10\nManage Request Categories / Settings",
+          "html": "UC-10<br>Manage Request Categories / Settings"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-20",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-14\nSubmit Visit Request (Public Form)",
+          "html": "UC-14<br>Submit Visit Request (Public Form)"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-21",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-15\nTrack Request via Code / Link",
+          "html": "UC-15<br>Track Request via Code / Link"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-22",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-16\nLogin",
+          "html": "UC-16<br>Login"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-23",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-1.1\nRequest Equipment / Space",
+          "html": "UC-1.1<br>Request Equipment / Space"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-24",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-1.2\nRequest Consumables",
+          "html": "UC-1.2<br>Request Consumables"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-25",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-1.3\nRequest Access",
+          "html": "UC-1.3<br>Request Access"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-26",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-1.4\nSubmit General Ticket",
+          "html": "UC-1.4<br>Submit General Ticket"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-27",
+          "type": "node",
+          "parent": "1",
+          "label": "UC-11\nValidate Request Information",
+          "html": "UC-11<br>Validate Request Information"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-28",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-2",
+          "target": "HbGEP3n64xSLTORdmDGh-8"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-29",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-2",
+          "target": "HbGEP3n64xSLTORdmDGh-9"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-30",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-2",
+          "target": "HbGEP3n64xSLTORdmDGh-10"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-31",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-3",
+          "target": "HbGEP3n64xSLTORdmDGh-11"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-32",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-3",
+          "target": "HbGEP3n64xSLTORdmDGh-12"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-33",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-3",
+          "target": "HbGEP3n64xSLTORdmDGh-13"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-34",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-3",
+          "target": "HbGEP3n64xSLTORdmDGh-14"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-35",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-3",
+          "target": "HbGEP3n64xSLTORdmDGh-15"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-36",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-4",
+          "target": "HbGEP3n64xSLTORdmDGh-16"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-37",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-4",
+          "target": "HbGEP3n64xSLTORdmDGh-17"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-38",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-5",
+          "target": "HbGEP3n64xSLTORdmDGh-18"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-39",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-5",
+          "target": "HbGEP3n64xSLTORdmDGh-19"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-40",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-6",
+          "target": "HbGEP3n64xSLTORdmDGh-20"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-41",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-6",
+          "target": "HbGEP3n64xSLTORdmDGh-21"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-42",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-7",
+          "target": "HbGEP3n64xSLTORdmDGh-22"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-43",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-23",
+          "target": "HbGEP3n64xSLTORdmDGh-8"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-44",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-24",
+          "target": "HbGEP3n64xSLTORdmDGh-8"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-45",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-25",
+          "target": "HbGEP3n64xSLTORdmDGh-8"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-46",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-26",
+          "target": "HbGEP3n64xSLTORdmDGh-8"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-47",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-2",
+          "target": "HbGEP3n64xSLTORdmDGh-7"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-48",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-3",
+          "target": "HbGEP3n64xSLTORdmDGh-7"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-49",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-4",
+          "target": "HbGEP3n64xSLTORdmDGh-7"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-50",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-5",
+          "target": "HbGEP3n64xSLTORdmDGh-7"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-51",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-8",
+          "target": "HbGEP3n64xSLTORdmDGh-27",
+          "label": "«include»"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-52",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-15",
+          "target": "HbGEP3n64xSLTORdmDGh-27",
+          "label": "«include»"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-53",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-20",
+          "target": "HbGEP3n64xSLTORdmDGh-27",
+          "label": "«include»"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-54",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-17",
+          "target": "HbGEP3n64xSLTORdmDGh-13",
+          "label": "«extend»"
+        },
+        {
+          "id": "HbGEP3n64xSLTORdmDGh-55",
+          "type": "edge",
+          "parent": "1",
+          "source": "HbGEP3n64xSLTORdmDGh-21",
+          "target": "HbGEP3n64xSLTORdmDGh-9",
+          "label": "«extend»"
+        }
+      ]
+    }
+  ]
+}
