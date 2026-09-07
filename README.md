@@ -11,7 +11,7 @@ reliable — replacing the current mix of email, chat, and spreadsheets.
 
 | Name | Student ID | GitHub Username |
 |---|---|---|
-| Theewasu Aekthong | 6810545701 | Theewasu-a> |
+| Theewasu Aekthong | 6810545701 | Theewasu-a |
 | Kantee Laibuddee | 6710545440 | Kantee22 |
 | Tanon Likhittaphong | 6710545547 | Tanon6710545547 |
 | Inthat Niramarn | 6810545999 | Inthat6810545999 |
