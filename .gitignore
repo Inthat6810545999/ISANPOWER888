@@ -10,6 +10,7 @@ Thumbs.db
 # --- Environment / Secrets ---
 .env
 .env.*
+!.env.example
 *.pem
 
 # --- Dependencies ---
@@ -23,6 +24,10 @@ venv/
 # --- Build output ---
 dist/
 build/
+.next/
+next-env.d.ts
+coverage/
+*.tsbuildinfo
 *.log
 
 # --- Docker ---
