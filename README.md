@@ -51,10 +51,90 @@ docs/
     └── Sequence.json             # draw.io — Sequence Diagrams
 ```
 
-Source code, prototype, and database files are kept in the `source/` folder.
+## Tech Stack
 
-## Tech Stack (planned, from SRS Sections 9–11)
+- **Architecture:** Modular Monolithic (MVC) — Next.js frontend + Express API + MongoDB
+- **Frontend:** Next.js 16 (App Router) + React 19 + Tailwind CSS 4, TypeScript
+- **Backend:** Node.js + Express 5 + Mongoose, TypeScript
+- **Database:** MongoDB 8
+- **Dev/Deploy Environment:** Docker containers (via Docker Compose)
+- **CI/CD:** GitHub Actions
 
-- **Architecture:** Modular Monolithic (MVC)
-- **Database:** RDBMS — PostgreSQL
-- **Dev/Deploy Environment:** Docker containers (via Docker Compose) / VM
+> **Note:** The SRS (Sections 9–11) specifies PostgreSQL/RDBMS. The implementation
+> uses MongoDB, so the Data Storage section and the affected traceability rows need
+> to be updated in Iteration 2.
+
+## Repository Structure
+
+```
+apps/
+├── api/                  # Express + Mongoose REST API (MVC)
+│   └── src/
+│       ├── config/       # environment validation
+│       ├── controllers/  # request handlers
+│       ├── db/           # Mongoose connection
+│       ├── middleware/   # error handling
+│       ├── models/       # Mongoose schemas
+│       └── routes/       # route definitions
+└── web/                  # Next.js frontend
+    └── src/
+        ├── app/          # App Router pages + server actions
+        └── lib/          # API client
+docs/                     # SRS, proposal, diagrams (see above)
+docker-compose.yml        # mongo + api + web for local development
+.github/workflows/        # CI (lint/typecheck/test/build) and CD (image publish)
+```
+
+## Getting Started
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/). Node.js 20+
+is only needed if you want to run an app outside of Docker.
+
+```bash
+cp .env.example .env      # defaults work as-is for local development
+docker compose up --build
+```
+
+- Web app → http://localhost:3000
+- API → http://localhost:4000/api/health
+- MongoDB → localhost:27017
+
+Both apps hot-reload — editing a file in `apps/web` or `apps/api` updates the running
+container. To stop everything, `docker compose down` (add `-v` to also wipe the database).
+
+### Running an app without Docker
+
+```bash
+docker compose up mongo   # database still needs to run
+
+cd apps/api && cp .env.example .env && npm install && npm run dev
+cd apps/web && cp .env.example .env && npm install && npm run dev
+```
+
+### Useful commands
+
+| Command | Where | What it does |
+|---|---|---|
+| `npm run dev` | `apps/api`, `apps/web` | Start the dev server |
+| `npm run lint` | `apps/api`, `apps/web` | Run ESLint |
+| `npm run typecheck` | `apps/api`, `apps/web` | Type-check without emitting |
+| `npm test` | `apps/api` | Run the API test suite (Vitest) |
+| `npm run build` | `apps/api`, `apps/web` | Production build |
+
+## API Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/health` | Service and database status |
+| `GET` | `/api/requests` | List lab requests (`?status=`, `?type=` filters) |
+| `POST` | `/api/requests` | Create a lab request |
+| `GET` | `/api/requests/:id` | Fetch a single request |
+| `PATCH` | `/api/requests/:id/status` | Update a request's approval status |
+
+## CI/CD
+
+- **CI** (`.github/workflows/ci.yml`) runs on every push and pull request to `main`:
+  lint, type-check, tests, and production builds for both apps, plus a Docker image build.
+- **CD** (`.github/workflows/cd.yml`) builds and publishes both production images to
+  GitHub Container Registry (`ghcr.io`) on pushes to `main` and on `v*` tags.
+  Deployment to an actual server is not configured yet.
