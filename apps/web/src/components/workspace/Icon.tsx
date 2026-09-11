@@ -19,4 +19,5 @@ export function Icon({ name, style }: { name: keyof typeof paths; style?: CSSPro
     strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>
     <path d={paths[name]} />
   </svg>;
+  
 }
