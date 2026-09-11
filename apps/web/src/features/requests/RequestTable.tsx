@@ -5,6 +5,7 @@ import { Dialog } from "@/components/workspace/Dialog";
 import { Icon } from "@/components/workspace/Icon";
 import styles from "@/components/workspace/workspace.module.css";
 import { CATEGORIES, PRIORITIES, STATUSES, type WorkspaceRequest } from "./types";
+import { APPROVAL_LABELS } from "@/lib/request-status";
 
 // Fixed labels avoid Intl locale-data differences between server and browser (Sep/Sept).
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -17,7 +18,7 @@ function formatDate(value: string) {
 
 export function StatusBadge({ request }: { request: WorkspaceRequest }) {
   return <div><span className={styles.status} data-status={request.status}>● {STATUSES[request.status]}</span>
-    {request.requiresApproval && <small className={styles.approvalNote}>Needs approval</small>}
+    {request.approvalStatus !== "not_required" && <small className={styles.approvalNote} data-approval-status={request.approvalStatus}>Approval: {APPROVAL_LABELS[request.approvalStatus]}</small>}
   </div>;
 }
 
@@ -34,7 +35,8 @@ export function RequestTable({ title, requests, renderRowActions }: {
   const [priority, setPriority] = useState("");
   const [sort, setSort] = useState("latest");
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<WorkspaceRequest | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = requests.find((request) => request.id === selectedId);
   const detailTitle = useId();
   const headingId = useId();
   const query = search.trim().toLowerCase();
@@ -82,7 +84,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
           <thead><tr><th scope="col">Request</th><th scope="col">Status</th><th scope="col">Priority</th><th scope="col">Assigned to</th><th scope="col">Due date</th><th scope="col"><span className={styles.srOnly}>Details</span></th></tr></thead>
           <tbody>{visible.map((request) => <tr key={request.id}>
             <td><div className={styles.requestCell}><span className={styles.categoryIcon}><Icon name={request.category === "access" ? "shield" : request.category === "general" ? "requests" : "flask"} /></span>
-              <div><button className={styles.requestTitle} onClick={() => setSelected(request)}>{request.title}</button>
+              <div><button className={styles.requestTitle} onClick={() => setSelectedId(request.id)}>{request.title}</button>
                 <p>{request.id} · {CATEGORIES[request.category]} · {request.requester.name}</p></div></div></td>
             <td><StatusBadge request={request} /></td>
             <td><span className={styles.priority} data-priority={request.priority}>▸ {request.priority}</span></td>
@@ -90,7 +92,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
             <td className={styles.date}>{formatDate(request.neededBy)}</td>
             <td><div className={styles.rowActions}>
               {renderRowActions?.(request)}
-              <button className={styles.iconButton} aria-label={`View ${request.id}`} onClick={() => setSelected(request)}><Icon name="external" /></button>
+              <button className={styles.iconButton} aria-label={`View ${request.id}`} onClick={() => setSelectedId(request.id)}><Icon name="external" /></button>
             </div></td>
           </tr>)}</tbody>
         </table>
@@ -101,14 +103,14 @@ export function RequestTable({ title, requests, renderRowActions }: {
         <div><button aria-label="Previous page" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>‹</button><span>Page {currentPage} of {pageCount}</span><button aria-label="Next page" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>›</button></div>
       </div>
     </section>
-    {selected && <Dialog titleId={detailTitle} onClose={() => setSelected(null)}>
+    {selected && <Dialog titleId={detailTitle} onClose={() => setSelectedId(null)}>
       <div className={styles.dialogHeader}><p className={styles.eyebrow}>{selected.id} · REQUEST DETAILS</p><h2 id={detailTitle}>{selected.title}</h2></div>
       <div className={styles.detailBody}><StatusBadge request={selected} /><p className={styles.description}>{selected.description}</p>
         <dl className={styles.detailGrid}>
           <div><dt>Requested by</dt><dd>{selected.requester.name}</dd></div><div><dt>Assigned to</dt><dd>{selected.assignee?.name ?? "Unassigned"}</dd></div>
           <div><dt>Category</dt><dd>{CATEGORIES[selected.category]}</dd></div><div><dt>Priority</dt><dd className={styles.priority}>{selected.priority}</dd></div>
           <div><dt>Location</dt><dd>{selected.location || "Not specified"}</dd></div><div><dt>Needed by</dt><dd>{formatDate(selected.neededBy)}</dd></div>
-        </dl><p className={styles.helper}>Demo request · Changes are kept only until refresh.</p>
+        </dl><p className={styles.helper}>Saved to your lab workspace · Status updates automatically.</p>
       </div>
     </Dialog>}
   </>;

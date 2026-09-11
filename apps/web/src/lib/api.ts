@@ -1,4 +1,6 @@
 import "server-only";
+import type { ApprovalStatus, RequestStatus } from "./request-status";
+export { REQUEST_STATUSES, APPROVAL_STATUSES, type RequestStatus, type ApprovalStatus } from "./request-status";
 
 export const REQUEST_TYPES = [
   "equipment",
@@ -9,16 +11,7 @@ export const REQUEST_TYPES = [
   "general",
 ] as const;
 
-export const REQUEST_STATUSES = [
-  "submitted",
-  "under_review",
-  "approved",
-  "rejected",
-  "cancelled",
-] as const;
-
 export type RequestType = (typeof REQUEST_TYPES)[number];
-export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 
 export type LabRequest = {
   id: string;
@@ -26,8 +19,13 @@ export type LabRequest = {
   description: string;
   type: RequestType;
   status: RequestStatus;
+  approvalStatus: ApprovalStatus;
+  requiresApproval: boolean;
+  priority: "low" | "medium" | "high";
+  location: string;
   requesterEmail: string;
-  neededBy?: string;
+  neededBy: string | null;
+  assigneeEmail: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -39,6 +37,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
     cache: "no-store",
+    signal: AbortSignal.timeout(10000),
   });
 
   if (!res.ok) {
@@ -49,8 +48,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function listLabRequests(): Promise<LabRequest[]> {
-  const { data } = await apiFetch<{ data: LabRequest[] }>("/requests");
+export async function listLabRequests(requesterEmail?: string): Promise<LabRequest[]> {
+  const query = requesterEmail ? `?requesterEmail=${encodeURIComponent(requesterEmail)}` : "";
+  const { data } = await apiFetch<{ data: LabRequest[] }>(`/requests${query}`);
   return data;
 }
 
@@ -59,6 +59,10 @@ export async function createLabRequest(input: {
   description?: string;
   type: RequestType;
   requesterEmail: string;
+  priority?: LabRequest["priority"];
+  location?: string;
+  requiresApproval?: boolean;
+  neededBy?: string;
 }): Promise<LabRequest> {
   const { data } = await apiFetch<{ data: LabRequest }>("/requests", {
     method: "POST",
@@ -74,6 +78,21 @@ export async function updateLabRequestStatus(
   const { data } = await apiFetch<{ data: LabRequest }>(`/requests/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
+  });
+  return data;
+}
+
+export async function updateLabRequestApprovalStatus(id: string, approvalStatus: ApprovalStatus): Promise<LabRequest> {
+  const { data } = await apiFetch<{ data: LabRequest }>(`/requests/${id}/approval-status`, {
+    method: "PATCH",
+    body: JSON.stringify({ approvalStatus }),
+  });
+  return data;
+}
+
+export async function performLabRequestTaAction(id: string, action: "claim" | "start" | "close", assigneeEmail: string): Promise<LabRequest> {
+  const { data } = await apiFetch<{ data: LabRequest }>(`/requests/${encodeURIComponent(id)}/ta-action`, {
+    method: "PATCH", body: JSON.stringify({ action, assigneeEmail }),
   });
   return data;
 }

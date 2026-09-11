@@ -17,6 +17,15 @@ enum RequestType {
 }
 
 enum RequestStatus {
+  pending
+  assigned
+  in_progress
+  closed
+  cancelled
+}
+
+enum ApprovalStatus {
+  not_required
   submitted
   under_review
   approved
@@ -24,16 +33,29 @@ enum RequestStatus {
   cancelled
 }
 
-model LabRequest {
-  id             String        @id @default(uuid())
-  title          String
-  description    String        @default("")
-  type           RequestType
-  status         RequestStatus @default(submitted)
-  requesterEmail String
-  neededBy       DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+enum RequestPriority {
+  low
+  medium
+  high
+}
 
+model LabRequest {
+  id               String          @id @default(uuid())
+  title            String
+  description      String          @default("")
+  type             RequestType
+  status           RequestStatus   @default(pending)
+  approvalStatus   ApprovalStatus  @default(not_required)
+  requiresApproval Boolean         @default(false)
+  priority         RequestPriority @default(medium)
+  location         String          @default("")
+  requesterEmail   String
+  assigneeEmail    String?
+  neededBy         DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([requesterEmail])
+  @@index([assigneeEmail, status])
   @@map("lab_requests")
 }

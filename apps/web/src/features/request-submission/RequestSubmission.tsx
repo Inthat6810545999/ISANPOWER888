@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/workspace/Dialog";
 import { Icon } from "@/components/workspace/Icon";
@@ -9,7 +9,6 @@ import styles from "@/components/workspace/workspace.module.css";
 import { useRequests } from "@/features/requests/RequestsProvider";
 import { CATEGORIES, PRIORITIES, type Category, type Priority } from "@/features/requests/types";
 
-/** US-1 owner: integrate authenticated submission and server validation here. */
 export function RequestSubmission() {
   const router = useRouter();
   const { addRequest } = useRequests();
@@ -17,11 +16,12 @@ export function RequestSubmission() {
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const close = () => router.push("/workspace/my-requests");
+  const submitting = useRef(false);
+  const close = () => { if (!submitting.current) router.push("/workspace/my-requests"); };
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitted) return;
+    if (submitting.current) return;
     const data = new FormData(event.currentTarget);
     const title = String(data.get("title") ?? "").trim();
     const category = String(data.get("category")) as Category;
@@ -35,10 +35,17 @@ export function RequestSubmission() {
       return;
     }
     setSubmitted(true);
-    addRequest({ title, category, priority, description: description.trim(),
-      location: String(data.get("location") ?? "").trim(), neededBy: String(data.get("neededBy") ?? ""),
-      requiresApproval: data.get("requiresApproval") === "on" });
-    close();
+    submitting.current = true;
+    setError("");
+    try {
+      await addRequest({ title, category, priority, description: description.trim(),
+        location: String(data.get("location") ?? "").trim(), neededBy: String(data.get("neededBy") ?? ""),
+        requiresApproval: data.get("requiresApproval") === "on" });
+      router.push("/workspace/my-requests");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save. Please retry.");
+      setSubmitted(false);
+    } finally { submitting.current = false; }
   }
 
   return <>
@@ -59,7 +66,7 @@ export function RequestSubmission() {
         </div>
         <label className={styles.approvalBox}><input name="requiresApproval" type="checkbox" /><span><strong>Requires Lab Manager approval</strong><small>Choose this for spending, sensitive access, or work requiring authorisation.</small></span><Icon name="shield" /></label>
         {error && <p role="alert" className={styles.error}>{error}</p>}
-        <div className={styles.formFooter}><span>Demo session · Not saved to the server</span><div><button className={styles.secondaryButton} type="button" onClick={close}>Cancel</button><button className={styles.primaryButton} type="submit" disabled={submitted}>{submitted ? "Submitting…" : "Submit request"}<Icon name="arrow" /></button></div></div>
+        <div className={styles.formFooter}><span>Submit to save to your lab workspace</span><div><button className={styles.secondaryButton} type="button" disabled={submitted} onClick={close}>Cancel</button><button className={styles.primaryButton} type="submit" disabled={submitted}>{submitted ? "Submitting…" : "Submit request"}<Icon name="arrow" /></button></div></div>
       </form>
     </Dialog>
   </>;

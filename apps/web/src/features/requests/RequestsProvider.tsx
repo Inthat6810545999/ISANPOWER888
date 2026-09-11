@@ -1,33 +1,91 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { MOCK_MEMBER, MOCK_REQUESTS } from "./mock-data";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { changeTaRequest, loadRequests, submitRequest } from "./actions";
 import type { RequestDraft, WorkspaceRequest } from "./types";
 
 type RequestsContextValue = {
   requests: WorkspaceRequest[];
-  addRequest: (draft: RequestDraft) => void;
+  addRequest: (draft: RequestDraft) => Promise<void>;
+  taAction: (id: string, action: "claim" | "start" | "close") => Promise<void>;
+  refresh: () => Promise<void>;
+  loading: boolean;
+  refreshing: boolean;
+  error: string;
   notice: string;
   dismissNotice: () => void;
 };
 const RequestsContext = createContext<RequestsContextValue | null>(null);
 
-/** Session-only demo store; replace through a shared integration PR. */
-export function RequestsProvider({ children }: { children: ReactNode }) {
-  const [requests, setRequests] = useState<WorkspaceRequest[]>(MOCK_REQUESTS);
+export function RequestsProvider({ children, scope = "member" }: { children: ReactNode; scope?: "member" | "ta" }) {
+  const [requests, setRequests] = useState<WorkspaceRequest[]>([]);
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const generation = useRef(0);
+  const active = useRef(true);
+  const fetching = useRef(false);
+  const path = usePathname();
 
-  function addRequest(draft: RequestDraft) {
-    const createdAt = new Date().toISOString();
-    setRequests((current) => {
-      const nextNumber = Math.max(...current.map((request) => Number(request.id.slice(4)))) + 1;
-      return [{ ...draft, id: `LAB-${String(nextNumber).padStart(4, "0")}`, status: "pending",
-        requester: MOCK_MEMBER, assignee: null, createdAt }, ...current];
-    });
-    setNotice("Request added to this demo session. Your team’s next step starts here.");
+  const refresh = useCallback(async () => {
+    if (fetching.current) return;
+    fetching.current = true;
+    const version = generation.current;
+    setRefreshing(true);
+    try {
+      const result = await loadRequests(scope);
+      if (!active.current || version !== generation.current) return;
+      if (result.ok) { setRequests(result.data); setError(""); }
+      else setError(result.error);
+    } catch {
+      if (active.current && version === generation.current) setError("Unable to refresh requests. Check your connection and retry.");
+    } finally {
+      fetching.current = false;
+      if (active.current) { setLoading(false); setRefreshing(false); }
+    }
+  }, [scope]);
+
+  useEffect(() => {
+    active.current = true;
+    const initialLoad = window.setTimeout(() => void refresh(), 0);
+    const onFocus = () => { if (document.visibilityState === "visible") void refresh(); };
+    const timer = window.setInterval(onFocus, 4000);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      active.current = false;
+      window.clearTimeout(initialLoad);
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [refresh, path]);
+
+  function saved(request: WorkspaceRequest, message: string) {
+    // Ignore any list response that started before this write finished.
+    generation.current += 1;
+    setRequests((current) => [request, ...current.filter((item) => item.id !== request.id)]);
+    setError("");
+    setNotice(message);
   }
 
-  return <RequestsContext.Provider value={{ requests, addRequest, notice, dismissNotice: () => setNotice("") }}>
+  async function addRequest(draft: RequestDraft) {
+    setNotice("");
+    const result = await submitRequest(draft);
+    if (!result.ok) throw new Error(result.error);
+    saved(result.data, "Request saved. Your TA can now see it in the queue.");
+  }
+
+  async function taAction(id: string, action: "claim" | "start" | "close") {
+    setNotice("");
+    const result = await changeTaRequest(id, action);
+    if (!result.ok) { void refresh(); throw new Error(result.error); }
+    saved(result.data, action === "claim" ? "Request assigned to you." : action === "start" ? "Work started. The member can see the updated status." : "Request closed. The member can see the updated status.");
+  }
+
+  return <RequestsContext.Provider value={{ requests, addRequest, taAction, refresh, loading, refreshing, error, notice, dismissNotice: () => setNotice("") }}>
     {children}
   </RequestsContext.Provider>;
 }

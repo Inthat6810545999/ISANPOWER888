@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { MOCK_MEMBER } from "@/features/requests/mock-data";
+import { DEMO_MEMBER } from "@/features/requests/demo-identity";
 import { useRequests } from "@/features/requests/RequestsProvider";
 import { Icon } from "./Icon";
 import styles from "./workspace.module.css";
@@ -11,7 +11,7 @@ import styles from "./workspace.module.css";
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const isNew = path.endsWith("/new");
-  const person = MOCK_MEMBER;
+  const person = DEMO_MEMBER;
   const { requests, notice, dismissNotice } = useRequests();
   const title = isNew ? "Create a request" : "My requests";
 
@@ -27,7 +27,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       <p className={styles.navLabel}>WORKSPACE</p>
       <nav aria-label="Workspace navigation" className={styles.nav}>
         <Link href="/workspace/my-requests" aria-current={!isNew ? "page" : undefined}>
-          <Icon name="requests" /> My requests <span className={styles.navCount}>{requests.filter((r) => r.requester.id === MOCK_MEMBER.id).length}</span>
+          <Icon name="requests" /> My requests <span className={styles.navCount}>{requests.filter((r) => r.requester.id === DEMO_MEMBER.id).length}</span>
         </Link>
         <Link href="/workspace/requests/new" aria-current={isNew ? "page" : undefined}>
           <Icon name="plus" /> New request
@@ -40,12 +40,12 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     </aside>
     <div className={styles.mainColumn}>
       <header className={styles.topbar}><span>Workspace <span className={styles.separator}>/</span> <strong>{title}</strong></span>
-        <div className={styles.topbarRight}><span className={styles.demoLabel}>● Demo workspace</span><span className={styles.avatar}>{person.initials}</span></div>
+        <div className={styles.topbarRight}><span className={styles.demoLabel}>Local demo · Member</span><span className={styles.avatar}>{person.initials}</span></div>
       </header>
       <main id="workspace-content" className={styles.content}>
         {notice && <div className={styles.notice} role="status"><span>{notice}</span><button aria-label="Dismiss notification" onClick={dismissNotice}><Icon name="close" /></button></div>}
         {children}
-        <footer className={styles.footer}><span>ISANPOWER Lab · Make every request count.</span><span>Sample data · Resets on refresh</span></footer>
+        <footer className={styles.footer}><span>ISANPOWER Lab · Make every request count.</span><span>Shared requests · Saved locally</span></footer>
       </main>
     </div>
   </div>;
