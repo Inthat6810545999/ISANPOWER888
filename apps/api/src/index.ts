@@ -2,7 +2,7 @@ import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { connectDatabase } from "./db/connect.js";
 
-await connectDatabase(env.MONGODB_URI);
+await connectDatabase();
 
 const app = createApp(env.CORS_ORIGIN);
 

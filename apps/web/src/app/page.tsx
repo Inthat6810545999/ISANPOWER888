@@ -28,7 +28,7 @@ function RequestRow({ request }: { request: LabRequest }) {
         </span>
 
         <form action={changeStatus} className="flex items-center gap-2">
-          <input type="hidden" name="id" value={request._id} />
+          <input type="hidden" name="id" value={request.id} />
           <select
             name="status"
             defaultValue={request.status}
@@ -85,7 +85,7 @@ export default async function Home() {
         ) : (
           <ul className="flex flex-col gap-3">
             {requests.map((request) => (
-              <RequestRow key={request._id} request={request} />
+              <RequestRow key={request.id} request={request} />
             ))}
           </ul>
         )}

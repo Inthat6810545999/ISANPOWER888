@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { LabRequest, REQUEST_STATUSES, REQUEST_TYPES } from "../models/LabRequest.js";
+import { prisma } from "../db/connect.js";
+import { REQUEST_STATUSES, REQUEST_TYPES } from "../models/LabRequest.js";
 import { HttpError } from "../middleware/errorHandler.js";
 
 const createSchema = z.object({
@@ -22,29 +24,38 @@ const listQuerySchema = z.object({
 
 export async function listLabRequests(req: Request, res: Response): Promise<void> {
   const filter = listQuerySchema.parse(req.query);
-  const requests = await LabRequest.find(filter).sort({ createdAt: -1 }).lean();
+  const requests = await prisma.labRequest.findMany({
+    where: filter,
+    orderBy: { createdAt: "desc" },
+  });
   res.json({ data: requests });
 }
 
 export async function getLabRequest(req: Request, res: Response): Promise<void> {
-  const found = await LabRequest.findById(req.params.id).lean();
+  const found = await prisma.labRequest.findUnique({ where: { id: req.params.id } });
   if (!found) throw new HttpError(404, "Lab request not found");
   res.json({ data: found });
 }
 
 export async function createLabRequest(req: Request, res: Response): Promise<void> {
   const payload = createSchema.parse(req.body);
-  const created = await LabRequest.create(payload);
-  res.status(201).json({ data: created.toObject() });
+  const created = await prisma.labRequest.create({ data: payload });
+  res.status(201).json({ data: created });
 }
 
 export async function updateLabRequestStatus(req: Request, res: Response): Promise<void> {
   const { status } = updateStatusSchema.parse(req.body);
-  const updated = await LabRequest.findByIdAndUpdate(
-    req.params.id,
-    { status },
-    { new: true },
-  ).lean();
-  if (!updated) throw new HttpError(404, "Lab request not found");
-  res.json({ data: updated });
+
+  try {
+    const updated = await prisma.labRequest.update({
+      where: { id: req.params.id },
+      data: { status },
+    });
+    res.json({ data: updated });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+      throw new HttpError(404, "Lab request not found");
+    }
+    throw err;
+  }
 }

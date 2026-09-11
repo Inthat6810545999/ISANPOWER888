@@ -16,10 +16,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "mongoose": "^8.20.1",
+    "prisma": "^6.19.3",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -29,7 +30,6 @@
     "@types/node": "^24.10.1",
     "@types/supertest": "^6.0.3",
     "eslint": "^9.39.1",
-    "mongodb-memory-server": "^10.2.3",
     "supertest": "^7.1.4",
     "tsx": "^4.20.7",
     "typescript": "^5.9.3",

@@ -44,7 +44,7 @@ describe("lab requests", () => {
     const created = await request(app).post("/api/requests").send(validRequest).expect(201);
 
     const updated = await request(app)
-      .patch(`/api/requests/${created.body.data._id}/status`)
+      .patch(`/api/requests/${created.body.data.id}/status`)
       .send({ status: "approved" })
       .expect(200);
 
@@ -52,6 +52,8 @@ describe("lab requests", () => {
   });
 
   it("returns 404 for a request that does not exist", async () => {
-    await request(app).get("/api/requests/507f1f77bcf86cd799439011").expect(404);
+    await request(app)
+      .get("/api/requests/00000000-0000-0000-0000-000000000000")
+      .expect(404);
   });
 });

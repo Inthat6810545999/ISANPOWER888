@@ -21,7 +21,7 @@ export type RequestType = (typeof REQUEST_TYPES)[number];
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 
 export type LabRequest = {
-  _id: string;
+  id: string;
   title: string;
   description: string;
   type: RequestType;

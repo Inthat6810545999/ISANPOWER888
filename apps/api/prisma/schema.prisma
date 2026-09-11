@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RequestType {
+  equipment
+  space
+  consumable
+  access
+  visitor
+  general
+}
+
+enum RequestStatus {
+  submitted
+  under_review
+  approved
+  rejected
+  cancelled
+}
+
+model LabRequest {
+  id             String        @id @default(uuid())
+  title          String
+  description    String        @default("")
+  type           RequestType
+  status         RequestStatus @default(submitted)
+  requesterEmail String
+  neededBy       DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("lab_requests")
+}

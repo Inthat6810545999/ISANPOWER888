@@ -1,10 +1,11 @@
-import mongoose from "mongoose";
+import { PrismaClient } from "@prisma/client";
 
-export async function connectDatabase(uri: string): Promise<void> {
-  mongoose.set("strictQuery", true);
-  await mongoose.connect(uri);
+export const prisma = new PrismaClient();
+
+export async function connectDatabase(): Promise<void> {
+  await prisma.$connect();
 }
 
 export async function disconnectDatabase(): Promise<void> {
-  await mongoose.disconnect();
+  await prisma.$disconnect();
 }

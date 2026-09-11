@@ -1,21 +1,15 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
-import mongoose from "mongoose";
+import { execSync } from "node:child_process";
 import { afterAll, afterEach, beforeAll } from "vitest";
+import { prisma } from "../db/connect.js";
 
-let mongod: MongoMemoryServer;
-
-beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
-  await mongoose.connect(mongod.getUri());
+beforeAll(() => {
+  execSync("npx prisma migrate deploy", { stdio: "inherit" });
 });
 
 afterEach(async () => {
-  await Promise.all(
-    Object.values(mongoose.connection.collections).map((c) => c.deleteMany({})),
-  );
+  await prisma.labRequest.deleteMany();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongod.stop();
+  await prisma.$disconnect();
 });
