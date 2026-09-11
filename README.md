@@ -1,5 +1,16 @@
 # ISANPOWER888 (ISP888) — Lab Resource Request System
 
+## US-1 / US-2 / US-3 frontend starter
+
+Run the mockups without a database: `npm --prefix apps/web ci`, then
+`npm --prefix apps/web run dev` and open **http://localhost:3000/workspace**
+for member demos (US-1 / US-2), or **http://localhost:3000/ta/queue** for the
+separate TA management demo (US-3). These are UI starters, without real authentication.
+See the [feature handoff and branch guide](docs/development/US1-US3-HANDOFF.md).
+The current API uses **Prisma + PostgreSQL**; some historical setup notes below
+still describe the previous MongoDB plan. Use `docker-compose.yml` and the Prisma
+schema as the current database reference.
+
 ## Project Name
 **Lab Workflow & Request Management System** *(Chosen IRL Challenge: Project B)*
 

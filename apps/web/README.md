@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ISANPOWER888 Web
 
-## Getting Started
-
-First, run the development server:
+Next.js App Router + React + TypeScript. ใช้ Node.js 24 ตาม CI ของโปรเจกต์
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+เปิด **http://localhost:3000/workspace** สำหรับเดโม่สมาชิก (US-1 / US-2) และ **http://localhost:3000/ta/queue** สำหรับเดโม่พื้นที่จัดการ TA (US-3) โดยไม่ต้องเปิด API หรือฐานข้อมูล ทั้งสองฝั่งแยก layout และเมนู ไม่ได้เป็นระบบ login / authorization จริง
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Feature | Route | Entry component |
+| --- | --- | --- |
+| US-1 Request Submission | `/workspace/requests/new` | `src/features/request-submission/RequestSubmission.tsx` |
+| US-2 My Requests | `/workspace/my-requests` | `src/features/my-requests/MyRequests.tsx` |
+| US-3 TA Queue | `/ta/queue` | `src/features/ta-queue/TaQueue.tsx` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ส่วนกลางอยู่ใน `src/components/workspace/` และ `src/features/requests/` โดย route เรียก component ของแต่ละฟีเจอร์เท่านั้น ฝั่งสมาชิกใช้ `src/app/workspace/layout.tsx` ส่วน TA ใช้ `src/app/ta/layout.tsx` และ `src/components/ta/TaShell.tsx`
 
-## Learn More
+US-1 ส่งข้อมูลจำลองให้ US-2 ดูได้ใน session เดียวกัน เมื่อ refresh จะรีเซ็ต ส่วน US-3 ใช้ sample data ของตัวเอง ไม่มีการส่งข้อมูลข้ามฝั่งหรือดำเนินการจัดการจริง URL เดิม `/workspace/ta-queue` redirect ไป `/ta/queue` เพื่อรองรับลิงก์เก่า
 
-To learn more about Next.js, take a look at the following resources:
+หน้า `/` เป็นหน้าทดลอง API เดิม ใช้ `API_BASE_URL` จาก `.env.example` และต้องมี Express API พร้อม PostgreSQL
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+อ่าน [คู่มือส่งต่องานและแตก branch](../../docs/development/US1-US3-HANDOFF.md) สำหรับขอบเขตงานแต่ละคน, API contract ที่ยังไม่ตรงกับ mockup และขั้นตอนรวม foundation ก่อนแยกฟีเจอร์
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## ตรวจงาน
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
