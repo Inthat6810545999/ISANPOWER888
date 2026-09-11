@@ -78,6 +78,7 @@
 .status[data-status="assigned"] { background: #e8e1ef; color: #756087; }
 .status[data-status="in_progress"] { background: #e2e9e3; color: #536f5d; }
 .status[data-status="closed"] { background: #e0e9d9; color: #536e46; }
+.status[data-status="cancelled"] { background: #ece6e3; color: #79655e; }
 .approvalNote { color: #97723b; display: block; font-size: 9px; margin-top: 5px; white-space: nowrap; }
 .priority { text-transform: capitalize; white-space: nowrap; }
 .priority[data-priority="high"] { color: #9a6329; }
@@ -193,3 +194,6 @@
   .approvalBox svg { display: none; }
   .detailGrid { grid-template-columns: 1fr; }
 }
+
+.syncBar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; font-size: .85rem; }
+.syncBar [role=alert] { color: #9b3328; flex: 1; }

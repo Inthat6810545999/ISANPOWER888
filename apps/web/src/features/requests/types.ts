@@ -1,4 +1,6 @@
-/** UI-only contracts. Agree on an API adapter before replacing the mock provider. */
+import type { ApprovalStatus, RequestStatus } from "@/lib/request-status";
+export { STATUS_LABELS as STATUSES } from "@/lib/request-status";
+/** UI view model; actions.ts maps API field names without changing status values. */
 export const CATEGORIES = {
   equipment: "Equipment / space",
   space: "Space booking",
@@ -8,16 +10,9 @@ export const CATEGORIES = {
   general: "General support",
 } as const;
 
-export const STATUSES = {
-  pending: "Pending",
-  assigned: "Assigned",
-  in_progress: "In progress",
-  closed: "Closed",
-} as const;
-
 export const PRIORITIES = ["low", "medium", "high"] as const;
 export type Category = keyof typeof CATEGORIES;
-export type Status = keyof typeof STATUSES;
+export type Status = RequestStatus;
 export type Priority = (typeof PRIORITIES)[number];
 export type Person = { id: string; name: string; initials: string };
 
@@ -34,6 +29,7 @@ export type RequestDraft = {
 export type WorkspaceRequest = RequestDraft & {
   id: string;
   status: Status;
+  approvalStatus: ApprovalStatus;
   requester: Person;
   assignee: Person | null;
   createdAt: string;

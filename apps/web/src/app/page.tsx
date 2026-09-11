@@ -1,12 +1,13 @@
 import { listLabRequests, REQUEST_STATUSES, type LabRequest } from "@/lib/api";
 import { changeStatus } from "./actions";
 import { RequestForm } from "./RequestForm";
+import { STATUS_LABELS, APPROVAL_LABELS } from "@/lib/request-status";
 
 const statusColors: Record<string, string> = {
-  submitted: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-  under_review: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100",
-  approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
+  pending: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+  assigned: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100",
+  in_progress: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100",
+  closed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
   cancelled: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
 };
 
@@ -24,19 +25,21 @@ function RequestRow({ request }: { request: LabRequest }) {
         <span
           className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusColors[request.status] ?? ""}`}
         >
-          {request.status}
+          {STATUS_LABELS[request.status]}
         </span>
+        <span className="text-xs">Approval: {APPROVAL_LABELS[request.approvalStatus]}</span>
 
         <form action={changeStatus} className="flex items-center gap-2">
           <input type="hidden" name="id" value={request.id} />
           <select
             name="status"
+            aria-label="Work status"
             defaultValue={request.status}
             className="rounded-md border border-black/15 bg-transparent px-2 py-1 text-xs dark:border-white/20"
           >
             {REQUEST_STATUSES.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {STATUS_LABELS[status]}
               </option>
             ))}
           </select>

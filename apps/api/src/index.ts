@@ -6,6 +6,6 @@ await connectDatabase();
 
 const app = createApp(env.CORS_ORIGIN);
 
-app.listen(env.PORT, () => {
+app.listen(env.PORT, process.env.HOST ?? "0.0.0.0", () => {
   console.log(`API listening on http://localhost:${env.PORT}`);
 });

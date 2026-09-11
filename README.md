@@ -1,15 +1,16 @@
 # ISANPOWER888 (ISP888) — Lab Resource Request System
 
-## US-1 / US-2 / US-3 frontend starter
+## US-1 / US-2 / US-3 local demo
 
-Run the mockups without a database: `npm --prefix apps/web ci`, then
-`npm --prefix apps/web run dev` and open **http://localhost:3000/workspace**
-for member demos (US-1 / US-2), or **http://localhost:3000/ta/queue** for the
-separate TA management demo (US-3). These are UI starters, without real authentication.
-See the [feature handoff and branch guide](docs/development/US1-US3-HANDOFF.md).
-The current API uses **Prisma + PostgreSQL**; some historical setup notes below
-still describe the previous MongoDB plan. Use `docker-compose.yml` and the Prisma
-schema as the current database reference.
+Member และ TA เชื่อม Express API + Prisma + PostgreSQL เดียวกันแล้ว ส่งคำขอและ Claim / Start work / Mark closed บันทึกจริง รัน local บน Windows โดยไม่ใช้ Docker:
+
+เปิด PostgreSQL, ตั้งค่า `.env` แล้วรัน `npm run dev` แยกใน `apps/api` และ `apps/web` ตามคู่มือด้านล่าง
+
+เปิด Member ที่ http://127.0.0.1:3000/workspace/my-requests และ TA ที่ http://127.0.0.1:3000/ta/queue
+
+ดู [คู่มือรัน local และขั้นตอนพรีเซนต์](docs/development/LOCAL-DEMO.md), [status contract](docs/development/REQUEST-STATUS-CONTRACT.md) และ [คู่มือส่งต่องาน](docs/development/US1-US3-HANDOFF.md)
+
+ยังใช้ตัวตนเดโม่ ไม่มี login/authorization จริง ข้อมูลเก็บถาวรใน PostgreSQL ที่กำหนดใน `DATABASE_URL` บันทึกด้านล่างเป็นเอกสารแผนเดิม; stack ปัจจุบันให้ยึด Prisma schema และคู่มือ local
 
 ## Project Name
 **Lab Workflow & Request Management System** *(Chosen IRL Challenge: Project B)*
@@ -140,7 +141,8 @@ cd apps/web && cp .env.example .env && npm install && npm run dev
 | `GET` | `/api/requests` | List lab requests (`?status=`, `?type=` filters) |
 | `POST` | `/api/requests` | Create a lab request |
 | `GET` | `/api/requests/:id` | Fetch a single request |
-| `PATCH` | `/api/requests/:id/status` | Update a request's approval status |
+| `PATCH` | `/api/requests/:id/status` | Update work status (pending / assigned / in_progress / closed / cancelled) |
+| `PATCH` | `/api/requests/:id/approval-status` | Update approval status independently of work status |
 
 ## CI/CD
 

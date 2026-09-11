@@ -1,32 +1,24 @@
 # ISANPOWER888 Web
 
-Next.js App Router + React + TypeScript. ใช้ Node.js 24 ตาม CI ของโปรเจกต์
+Next.js App Router + React + TypeScript ใช้ Node.js 24
 
-```bash
+Member (`/workspace/my-requests`) และ TA (`/ta/queue`) ใช้ API และ PostgreSQL เดียวกันแล้ว ให้เปิด PostgreSQL และ API ก่อน แล้วรันจากโฟลเดอร์ apps/web:
+
+```powershell
 npm ci
-npm run dev
+npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-เปิด **http://localhost:3000/workspace** สำหรับเดโม่สมาชิก (US-1 / US-2) และ **http://localhost:3000/ta/queue** สำหรับเดโม่พื้นที่จัดการ TA (US-3) โดยไม่ต้องเปิด API หรือฐานข้อมูล ทั้งสองฝั่งแยก layout และเมนู ไม่ได้เป็นระบบ login / authorization จริง
+ดู [คู่มือ local](../../docs/development/LOCAL-DEMO.md) สำหรับการรันแยก terminal, demo walkthrough และขอบเขตเรื่อง identity/approval
 
 | Feature | Route | Entry component |
 | --- | --- | --- |
-| US-1 Request Submission | `/workspace/requests/new` | `src/features/request-submission/RequestSubmission.tsx` |
+| US-1 Submission | `/workspace/requests/new` | `src/features/request-submission/RequestSubmission.tsx` |
 | US-2 My Requests | `/workspace/my-requests` | `src/features/my-requests/MyRequests.tsx` |
 | US-3 TA Queue | `/ta/queue` | `src/features/ta-queue/TaQueue.tsx` |
 
-ส่วนกลางอยู่ใน `src/components/workspace/` และ `src/features/requests/` โดย route เรียก component ของแต่ละฟีเจอร์เท่านั้น ฝั่งสมาชิกใช้ `src/app/workspace/layout.tsx` ส่วน TA ใช้ `src/app/ta/layout.tsx` และ `src/components/ta/TaShell.tsx`
+`src/features/requests/actions.ts` เป็น Server Action และ API adapter; `RequestsProvider` โหลด/refresh ข้อมูลทุก 4 วินาที; `demo-identity.ts` เป็นตัวตนเดโม่ที่ต้องแทนด้วย session ในงาน login ส่วน `src/lib/api.ts` ใช้ server-only อย่า import ตรงจาก client component
 
-US-1 ส่งข้อมูลจำลองให้ US-2 ดูได้ใน session เดียวกัน เมื่อ refresh จะรีเซ็ต ส่วน US-3 ใช้ sample data ของตัวเอง ไม่มีการส่งข้อมูลข้ามฝั่งหรือดำเนินการจัดการจริง URL เดิม `/workspace/ta-queue` redirect ไป `/ta/queue` เพื่อรองรับลิงก์เก่า
+Frontend อย่างเดียวใช้ `npm ci` แล้ว `npm run dev` แต่ต้องมี API ที่ `API_BASE_URL` (default http://localhost:4000) และฐานข้อมูล หาก backend ไม่พร้อมจะแสดง error ไม่ fallback เป็น mock
 
-หน้า `/` เป็นหน้าทดลอง API เดิม ใช้ `API_BASE_URL` จาก `.env.example` และต้องมี Express API พร้อม PostgreSQL
-
-อ่าน [คู่มือส่งต่องานและแตก branch](../../docs/development/US1-US3-HANDOFF.md) สำหรับขอบเขตงานแต่ละคน, API contract ที่ยังไม่ตรงกับ mockup และขั้นตอนรวม foundation ก่อนแยกฟีเจอร์
-
-## ตรวจงาน
-
-```bash
-npm run lint
-npm run typecheck
-npm run build
-```
+ตรวจด้วย `npm run lint`, `npm run typecheck`, `npm run test:contracts`, `npm run build`
