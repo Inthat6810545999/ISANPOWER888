@@ -6,9 +6,13 @@ import { Icon } from "@/components/workspace/Icon";
 import styles from "@/components/workspace/workspace.module.css";
 import { CATEGORIES, PRIORITIES, STATUSES, type WorkspaceRequest } from "./types";
 
+// Fixed labels avoid Intl locale-data differences between server and browser (Sep/Sept).
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 function formatDate(value: string) {
   if (!value) return "No due date";
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+  const date = new Date(`${value}T00:00:00Z`);
+  return `${date.getUTCDate()} ${MONTH_LABELS[date.getUTCMonth()]}`;
 }
 
 export function StatusBadge({ request }: { request: WorkspaceRequest }) {
