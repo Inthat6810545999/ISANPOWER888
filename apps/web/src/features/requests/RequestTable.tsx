@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Dialog } from "@/components/workspace/Dialog";
 import { Icon } from "@/components/workspace/Icon";
 import styles from "@/components/workspace/workspace.module.css";
@@ -23,7 +23,11 @@ export function StatusBadge({ request }: { request: WorkspaceRequest }) {
 
 const PAGE_SIZE = 6;
 
-export function RequestTable({ title, requests }: { title: string; requests: WorkspaceRequest[] }) {
+export function RequestTable({ title, requests, renderRowActions }: {
+  title: string;
+  requests: WorkspaceRequest[];
+  renderRowActions?: (request: WorkspaceRequest) => ReactNode;
+}) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [category, setCategory] = useState("");
@@ -84,7 +88,10 @@ export function RequestTable({ title, requests }: { title: string; requests: Wor
             <td><span className={styles.priority} data-priority={request.priority}>▸ {request.priority}</span></td>
             <td>{request.assignee ? <span className={styles.assignee}><span className={styles.avatar}>{request.assignee.initials}</span>{request.assignee.name}</span> : "Unassigned"}</td>
             <td className={styles.date}>{formatDate(request.neededBy)}</td>
-            <td><button className={styles.iconButton} aria-label={`View ${request.id}`} onClick={() => setSelected(request)}><Icon name="external" /></button></td>
+            <td><div className={styles.rowActions}>
+              {renderRowActions?.(request)}
+              <button className={styles.iconButton} aria-label={`View ${request.id}`} onClick={() => setSelected(request)}><Icon name="external" /></button>
+            </div></td>
           </tr>)}</tbody>
         </table>
       </div>
