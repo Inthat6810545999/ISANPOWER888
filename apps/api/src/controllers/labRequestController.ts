@@ -31,7 +31,7 @@ export async function listLabRequests(req: Request, res: Response): Promise<void
   res.json({ data: requests });
 }
 
-export async function getLabRequest(req: Request, res: Response): Promise<void> {
+export async function getLabRequest(req: Request<{ id: string }>, res: Response): Promise<void> {
   const found = await prisma.labRequest.findUnique({ where: { id: req.params.id } });
   if (!found) throw new HttpError(404, "Lab request not found");
   res.json({ data: found });
@@ -43,7 +43,7 @@ export async function createLabRequest(req: Request, res: Response): Promise<voi
   res.status(201).json({ data: created });
 }
 
-export async function updateLabRequestStatus(req: Request, res: Response): Promise<void> {
+export async function updateLabRequestStatus(req: Request<{ id: string }>, res: Response): Promise<void> {
   const { status } = updateStatusSchema.parse(req.body);
 
   try {
