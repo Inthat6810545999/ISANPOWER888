@@ -54,8 +54,51 @@ model LabRequest {
   neededBy         DateTime?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+  decision         ApprovalDecision?
 
   @@index([requesterEmail])
   @@index([assigneeEmail, status])
   @@map("lab_requests")
+}
+
+enum UserRole {
+  member
+  ta
+  lab_manager
+}
+
+model User {
+  id           String @id @default(uuid())
+  email        String @unique
+  name         String
+  role         UserRole
+  passwordHash String
+  active       Boolean @default(true)
+  sessions     Session[]
+  decisions    ApprovalDecision[]
+  @@map("users")
+}
+
+model Session {
+  id        String @id @default(uuid())
+  tokenHash String @unique
+  userId    String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model ApprovalDecision {
+  id            String @id @default(uuid())
+  requestId     String @unique
+  request       LabRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  outcome       ApprovalStatus
+  reason        String
+  reviewerId    String
+  reviewer      User @relation(fields: [reviewerId], references: [id])
+  reviewerName  String
+  reviewerEmail String
+  reviewedAt    DateTime @default(now())
+  @@map("approval_decisions")
 }
