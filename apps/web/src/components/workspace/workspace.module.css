@@ -197,3 +197,24 @@
 
 .syncBar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; font-size: .85rem; }
 .syncBar [role=alert] { color: #9b3328; flex: 1; }
+.sessionBar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 24px; font-size: 12px; flex-wrap: wrap; }
+.loginPage { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: #f3eee5; color: #34271f; font-family: monospace; }
+.loginCard { width: min(100%, 540px); background: #faf7f0; border: 1px solid #d7cab7; }
+.loginCard form { display: grid; gap: 24px; }
+.loginNote { padding: 0 32px 32px; font-size: 12px; line-height: 1.8; }
+.managerWorkspace .sidebar { background: #2d2938; }
+.actionStack { display: grid; gap: 8px; min-width: 145px; }
+.actionStack label { display: grid; gap: 4px; font-size: 11px; }
+.actionStack select { max-width: 180px; padding: 8px; background: #faf7f0; color: #34271f; border: 1px solid #d7cab7; }
+.actionStack small { max-width: 180px; white-space: normal; color: #87652f; }
+.reviewForm { display: grid; gap: 20px; margin-top: 24px; }
+.reviewForm p { font-size: 12px; line-height: 1.7; }
+.decisionRecord { padding: 20px; background: #eee8dd; margin-top: 24px; overflow-wrap: anywhere; }
+.reportFilters { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+.reportCards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
+.reportCards > div { padding: 24px; background: #faf7f0; border: 1px solid #d7cab7; }
+.reportCards strong { display: block; font-size: 32px; margin-top: 16px; }
+.reportGroups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.reportGroups h2, .reportGroups p { padding: 16px; }
+.reportGroups .table { min-width: 0; }
+@media (max-width: 1000px) { .reportCards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .reportGroups { grid-template-columns: 1fr; } }

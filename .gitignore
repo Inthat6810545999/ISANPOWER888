@@ -9,6 +9,7 @@ Thumbs.db
 
 # --- Environment / Secrets ---
 .env
+.demo-accounts.json
 .env.*
 !.env.example
 *.pem

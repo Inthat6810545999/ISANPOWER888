@@ -2,13 +2,18 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { changeTaRequest, loadRequests, submitRequest } from "./actions";
+import { changeTaRequest, loadRequests, submitRequest, reviewRequest } from "./actions";
 import type { RequestDraft, WorkspaceRequest } from "./types";
 
+import type { TaAction } from "@/lib/api";
+import type { Role, SessionUser } from "@/lib/session-types";
+
 type RequestsContextValue = {
+  user: SessionUser;
   requests: WorkspaceRequest[];
   addRequest: (draft: RequestDraft) => Promise<void>;
-  taAction: (id: string, action: "claim" | "start" | "close") => Promise<void>;
+  taAction: (id: string, payload: TaAction) => Promise<void>;
+  review: (id: string, decision: "approved" | "rejected", reason: string) => Promise<void>;
   refresh: () => Promise<void>;
   loading: boolean;
   refreshing: boolean;
@@ -18,7 +23,7 @@ type RequestsContextValue = {
 };
 const RequestsContext = createContext<RequestsContextValue | null>(null);
 
-export function RequestsProvider({ children, scope = "member" }: { children: ReactNode; scope?: "member" | "ta" }) {
+export function RequestsProvider({ children, user, scope = "member" }: { children: ReactNode; user: SessionUser; scope?: Role }) {
   const [requests, setRequests] = useState<WorkspaceRequest[]>([]);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -38,7 +43,7 @@ export function RequestsProvider({ children, scope = "member" }: { children: Rea
       const result = await loadRequests(scope);
       if (!active.current || version !== generation.current) return;
       if (result.ok) { setRequests(result.data); setError(""); }
-      else setError(result.error);
+      else { setRequests([]); setError(result.error); }
     } catch {
       if (active.current && version === generation.current) setError("Unable to refresh requests. Check your connection and retry.");
     } finally {
@@ -78,18 +83,24 @@ export function RequestsProvider({ children, scope = "member" }: { children: Rea
     saved(result.data, "Request saved. Your TA can now see it in the queue.");
   }
 
-  async function taAction(id: string, action: "claim" | "start" | "close") {
+  async function taAction(id: string, payload: TaAction) {
     setNotice("");
-    const result = await changeTaRequest(id, action);
+    const result = await changeTaRequest(id, payload);
     if (!result.ok) { void refresh(); throw new Error(result.error); }
-    saved(result.data, action === "claim" ? "Request assigned to you." : action === "start" ? "Work started. The member can see the updated status." : "Request closed. The member can see the updated status.");
+    saved(result.data, payload.action === "claim" ? "Request assigned to you." : payload.action === "start" ? "Work started. The member can see the updated status." : payload.action === "assign" ? "Assignment saved." : "Request closed. The member can see the updated status.");
   }
 
-  return <RequestsContext.Provider value={{ requests, addRequest, taAction, refresh, loading, refreshing, error, notice, dismissNotice: () => setNotice("") }}>
+  async function review(id: string, decision: "approved" | "rejected", reason: string) {
+    setNotice("");
+    const result = await reviewRequest(id, decision, reason);
+    if (!result.ok) { void refresh(); throw new Error(result.error); }
+    saved(result.data, "Decision recorded with your identity and review time.");
+  }
+
+  return <RequestsContext.Provider value={{ user, review, requests, addRequest, taAction, refresh, loading, refreshing, error, notice, dismissNotice: () => setNotice("") }}>
     {children}
   </RequestsContext.Provider>;
 }
-
 export function useRequests() {
   const context = useContext(RequestsContext);
   if (!context) throw new Error("useRequests must be used within RequestsProvider");

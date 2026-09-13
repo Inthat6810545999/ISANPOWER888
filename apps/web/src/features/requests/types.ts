@@ -33,4 +33,6 @@ export type WorkspaceRequest = RequestDraft & {
   requester: Person;
   assignee: Person | null;
   createdAt: string;
+  updatedAt?: string;
+  decision?: { outcome: ApprovalStatus; reason: string; reviewerName: string; reviewerEmail: string; reviewedAt: string } | null;
 };

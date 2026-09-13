@@ -1,56 +1,45 @@
 # ISANPOWER888 Web
 
-The Next.js frontend for Lab Member requests and the Teaching Assistant queue. It uses React, TypeScript, and a shared Express/PostgreSQL backend.
-
-For database creation, environment configuration, and the complete two-terminal workflow, start with the [root setup guide](../../README.md#local-setup-in-vs-code).
+Next.js/TypeScript frontend with separate Member, TA, and Lab Manager workspaces. Start with the [local setup guide](../../README.md#local-setup-in-vs-code) for PostgreSQL, migrations, API startup, and local account provisioning.
 
 ## Run locally
 
-Use Node.js 24. Start PostgreSQL and the API first, then create `apps/web/.env.local`:
-
-```dotenv
-API_BASE_URL=http://127.0.0.1:4000
-```
-
-From `apps/web`:
+Create `apps/web/.env.local` with `API_BASE_URL=http://127.0.0.1:4000`. From `apps/web`, run:
 
 ```powershell
 npm ci
 npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-On later runs, omit `npm ci` unless dependencies have changed. Keep the terminal open and use Ctrl+C to stop. Restart the frontend after changing `.env.local`.
+Open [Sign in](http://127.0.0.1:3000/login). Credentials are generated once by `npm run seed:demo` in the API app and saved to its ignored `.demo-accounts.json`. Use separate browser profiles for simultaneous roles; tabs on the same host share a session.
 
-## Routes and feature ownership
+## Routes and ownership
 
-| Feature | Route | Entry component |
+| Role | Route | Component |
 | --- | --- | --- |
-| US-1: Request Submission | `/workspace/requests/new` | `src/features/request-submission/RequestSubmission.tsx` |
-| US-2: My Requests | `/workspace/my-requests` | `src/features/my-requests/MyRequests.tsx` |
-| US-3: TA Queue | `/ta/queue` | `src/features/ta-queue/TaQueue.tsx` |
+| Public | `/login` | `app/login/LoginForm.tsx` |
+| Member | `/workspace/requests/new` | `features/request-submission/RequestSubmission.tsx` |
+| Member | `/workspace/my-requests` | `features/my-requests/MyRequests.tsx` |
+| TA | `/ta/queue` | `features/ta-queue/TaQueue.tsx` |
+| Lab Manager | `/manager/approvals` | `features/manager/ManagerApprovals.tsx` |
+| Lab Manager | `/manager/reports` | `features/manager/ManagerReports.tsx` |
 
-Open [Member](http://127.0.0.1:3000/workspace/my-requests) and [TA](http://127.0.0.1:3000/ta/queue) in separate tabs. The old `/workspace/ta-queue` route redirects to `/ta/queue`. The root `/` page is an earlier API experiment.
+`/` selects the signed-in workspace. Layouts check the verified role. Server Actions independently check permissions, and the API enforces them again. Manager does not inherit TA rights. The original public API experiment and its unrestricted status controls have been removed.
 
-## Data flow
+## Data and session flow
 
-- `src/features/requests/actions.ts` contains Server Actions and maps API records into the UI model, including `type` to `category`, dates, and requester/assignee display data.
-- `RequestsProvider.tsx` loads data, handles saves and errors, refreshes visible pages every four seconds, and refreshes when returning to a tab.
-- `RequestTable.tsx` provides shared search, filters, sorting, pagination, and live request details.
-- `src/lib/api.ts` is server-only. Call it through Server Actions or Server Components rather than importing it into Client Components.
-- `src/lib/request-status.ts` provides shared work and approval status values and labels.
-- `src/components/workspace/` and `src/components/ta/` provide separate navigation and shells for the two workspaces.
+- `lib/session.ts` reads the HttpOnly session cookie and verifies it through `/api/auth/me`.
+- `lib/api.ts` is server-only and forwards the session token as a Bearer header. Never send tokens to Client Components or localStorage.
+- `features/requests/actions.ts` checks the action's role and maps API records into the UI model. No requester/actor email is accepted as authority.
+- `RequestsProvider.tsx` keeps API-backed state and refreshes every four seconds while visible and on focus. Success appears only after persistence.
+- `RequestTable.tsx` provides search, filters, pagination, details, and the approval decision record.
+- `demo-identity.ts` supplies presentation labels for legacy email-based records only. It never grants access. Mock records are unused reference fixtures.
 
-Requests are saved through the API before the UI reports success. Connection errors are displayed without falling back to mock data. `mock-data.ts` remains a reference fixture only.
+TA can claim/assign before approval. Start/close are shown only for the assigned TA and blocked until required approval is granted. The API repeats these checks atomically. Manager can review and report, with no work actions. A final review needs a reason; reviewer identity/time are server-generated and immutable.
 
-## Demo boundaries
+These are verified sessions for manually seeded local demo accounts. Production provisioning, password recovery, SSO, MFA, and distributed throttling are not implemented. See the root README for the complete limitations.
 
-`demo-identity.ts` defines the fixed Member and TA identities selected by the server. Replace these with authenticated sessions and enforce roles in both the web server and API before deploying for multiple users.
-
-Work status is separate from approval status. Claiming, starting, or closing a request does not approve it. The Lab Manager interface and approval gate are not implemented yet.
-
-## Verification
-
-Run from `apps/web`:
+## Checks
 
 ```powershell
 npm run lint
@@ -59,8 +48,4 @@ npm run test:contracts
 npm run build
 ```
 
-Contract tests in `scripts/request-status.test.mjs` compare UI status values with the API and Prisma schema. This directory contains tests, not local startup automation.
-
-For a manual check, submit a Member request, claim/start/close it in TA, and confirm each status in Member. Reload the pages to check persistence and use the API health endpoint to diagnose connection problems.
-
-See the [root README](../../README.md) for API integration tests, contribution commands, and project documents.
+`next build` currently downloads the project's existing Google Fonts. Contract tests live in `scripts/`; they are not startup scripts. Follow the [presentation walkthrough](../../README.md#presentation-walkthrough) to verify all three roles and the approval gate.

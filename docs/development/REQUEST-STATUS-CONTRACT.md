@@ -1,32 +1,39 @@
-# Request status contract
+# Request status and permissions contract
 
-Frontend และ backend ใช้สถานะตรงกันแล้ว หน้า `/workspace` และ `/ta` อ่าน/เขียน API และ PostgreSQL เดียวกัน ดู [คู่มือ local](LOCAL-DEMO.md)
+Member, TA, and Manager read the same PostgreSQL records through the authenticated Express API. Next.js Server Actions check the role independently and forward a verified session token; client-supplied roles or actor emails never grant authority.
 
-## แยกสองสถานะ
+## Independent states
 
-| Field | Values | ความหมาย |
-| --- | --- | --- |
-| `status` | `pending`, `assigned`, `in_progress`, `closed`, `cancelled` | สถานะการดำเนินงาน |
-| `approvalStatus` | `not_required`, `submitted`, `under_review`, `approved`, `rejected`, `cancelled` | สถานะอนุมัติ |
+| Field | Values |
+| --- | --- |
+| `status` | `pending`, `assigned`, `in_progress`, `closed`, `cancelled` |
+| `approvalStatus` | `not_required`, `submitted`, `under_review`, `approved`, `rejected`, `cancelled` |
 
-การอนุมัติ (`approved`) ไม่ได้หมายความว่างานเสร็จ (`closed`) การ PATCH สถานะหนึ่งจะไม่เปลี่ยนอีกสถานะอัตโนมัติ `cancelled` ใน `status` คือยกเลิกงาน ส่วนใน `approvalStatus` คือยกเลิกขั้นตอนอนุมัติ
+Creation is Member-only. The API derives `requesterEmail` from the session, sets `status=pending`, and chooses `submitted` if `requiresApproval=true`, otherwise `not_required`. It rejects initial status, role, or requester identity overrides.
 
-- คำขอใหม่เริ่ม `status: pending`
-- `requiresApproval: false` → `approvalStatus: not_required`
-- `requiresApproval: true` → `approvalStatus: submitted`
-- frontend ใช้ `src/lib/request-status.ts` ร่วมกันทั้ง API client และหน้าตัวอย่าง
-- `npm --prefix apps/web run test:contracts` (Node.js 24) ตรวจ enum ระหว่าง frontend, API และ Prisma เพื่อจับการแก้สถานะไม่ครบทุกฝั่ง
+| Action | Actor | Preconditions | Result |
+| --- | --- | --- | --- |
+| Claim | TA | Pending, unassigned | Assigned to acting TA |
+| Assign/reassign | TA | Pending/assigned; latest `updatedAt`; active target TA | Assigned to target TA |
+| Start | Assigned TA | Assigned; approval gate satisfied | In progress |
+| Close | Assigned TA | In progress; approval gate satisfied | Closed |
+| Approve/reject | Manager | Required approval; submitted/under_review; work not closed/cancelled; nonempty reason | Final approval status plus audit record |
 
-## API
+The approval gate is `(requiresApproval && approvalStatus === approved) || (!requiresApproval && approvalStatus === not_required)`. Pending review, rejection, cancelled approval, and inconsistent states fail closed. TA may claim/assign before review, including rejected records, but cannot start or successfully close rejected work. Assignment is not allowed after work starts.
 
-`POST /api/requests` รับ:
+TA actions preserve approval and decision metadata. Manager decisions preserve work status and assignment. Final decisions are immutable; there is no reopen/review replacement endpoint. Existing work/approval `cancelled` states are readable, but cancellation is not a new UI action.
+
+## API examples
+
+All request endpoints require a Bearer session token obtained by password login. Next.js uses an HttpOnly cookie and forwards this token server-to-server.
+
+Member `POST /api/requests`:
 
 ```json
 {
   "title": "Calibrate oscilloscope",
   "description": "Prepare equipment for the next session.",
   "type": "equipment",
-  "requesterEmail": "student@example.com",
   "priority": "high",
   "location": "Lab B2",
   "neededBy": "2026-10-15",
@@ -34,66 +41,48 @@ Frontend และ backend ใช้สถานะตรงกันแล้�
 }
 ```
 
-`priority` ใช้ `low | medium | high` (default `medium`), `location` default `""`, `requiresApproval` default `false` ค่าเริ่มต้นของสองสถานะถูกกำหนดโดย server; ห้ามส่ง `status` หรือ `approvalStatus` มากับ POST
+TA `PATCH /api/requests/:id/ta-action` accepts one of:
 
-| Method | URL | Body / query |
-| --- | --- | --- |
-| PATCH | `/api/requests/:id/status` | `{ "status": "in_progress" }` |
-| PATCH | `/api/requests/:id/approval-status` | `{ "approvalStatus": "approved" }` |
-| GET | `/api/requests` | `?status=pending&approvalStatus=submitted&type=equipment` (เลือกกรองเฉพาะบางฟิลด์ได้) |
-
-ค่าผิดประเภท เช่น `status: approved` หรือ `approvalStatus: closed` จะตอบ 400 การเปลี่ยน approval ต้องสอดคล้องกับ `requiresApproval` ของรายการด้วย
-
-**Breaking change:** client เดิมที่ส่ง `status: approved` ต้องเปลี่ยนไปใช้ `/approval-status` และ `{ approvalStatus: "approved" }` ก่อนใช้งานร่วมกับ API เวอร์ชันนี้
-
-## ย้ายข้อมูลเดิม
-
-Migration `20260912000000_separate_request_status`:
-
-1. ย้ายสถานะเดิมไป `approvalStatus` โดยรักษาทุกค่าไว้
-2. ตั้ง `status` ของข้อมูลเดิมเป็น `pending` เพราะฐานข้อมูลเดิมไม่มีข้อมูลความคืบหน้างานให้อนุมาน ส่วนรายการที่เคย `cancelled` จะมีสถานะงาน `cancelled`
-3. ตั้ง `requiresApproval: true` สำหรับข้อมูลเดิม เพื่อรักษา workflow อนุมัติที่ระบบเดิมใช้ ข้อมูลเดิมที่ได้รับอนุมัติจะยัง `approvalStatus: approved` และไม่ถูกทำให้ `closed`
-4. เติม `priority: medium` และ `location: ""` ให้ข้อมูลเดิม
-
-ควรตรวจสถานะงานของรายการเก่าหลัง migration โดยเฉพาะรายการที่งานอาจดำเนินไปแล้ว แต่ระบบเดิมไม่ได้เก็บข้อมูลนั้น
-
-เมื่อพร้อมอัปเดตฐานข้อมูลเป้าหมาย ให้หยุด API เดิมชั่วคราว ตั้ง `DATABASE_URL` ให้ถูกต้อง แล้วรันจาก `apps/api`:
-
-```bash
-npx prisma migrate deploy
-npx prisma generate
-npm run dev
+```json
+{ "action": "claim" }
 ```
 
-ไม่ต้อง `migrate reset` และไม่ต้องลบ volume ข้อมูล การทดสอบของงานนี้จะใช้ฐานข้อมูลแยก ไม่ deploy migration เข้า database ของผู้ใช้โดยอัตโนมัติ
-
-## Member และ TA integration
-
-เพิ่ม `assigneeEmail` (nullable) และ index ใน migration `20260912010000_request_assignment` ข้อมูลเดิมยังอยู่ ผู้รับงานเดิมที่ไม่เคยบันทึกจะเป็น null
-
-GET `/api/requests?requesterEmail=...` กรองคำขอของสมาชิก (email lowercase)
-
-PATCH `/api/requests/:id/ta-action` รับ `{ assigneeEmail, action }`:
-- `claim`: pending + ไม่มีผู้รับงาน → assigned + ผู้รับงาน
-- `start`: assigned + ผู้รับงานตรงกัน → in_progress
-- `close`: in_progress + ผู้รับงานตรงกัน → closed
-
-ตรวจสถานะเดิมและผู้รับงานด้วย atomic update; action ซ้ำ/เจ้าของไม่ตรงคืน 409, ไม่พบคืน 404 โดยไม่เปลี่ยนข้อมูล สถานะอนุมัติยังคงเดิม
-
-Server Action เลือก fixed demo member/TA; ยังต้องเพิ่ม authenticated session และ role checks รวมถึงตกลง approval gate ก่อนใช้งานจริง endpoint `/status` เดิมยังคงไว้สำหรับหน้า API ทดลอง `/` ไม่ใช่ TA workflow
-
-## ตรวจงาน
-
-```bash
-npm --prefix apps/web run test:contracts
-npm --prefix apps/web run lint
-npm --prefix apps/web run typecheck
-npm --prefix apps/web run build
-npm --prefix apps/api run lint
-npm --prefix apps/api run typecheck
-npm --prefix apps/api run build
+```json
+{ "action": "assign", "assigneeId": "ACTIVE_TA_UUID", "expectedUpdatedAt": "2026-09-12T10:00:00.000Z" }
 ```
 
-API integration tests ต้องตั้ง `DATABASE_URL` ไปฐานข้อมูลทดสอบชื่อที่ลงท้าย `_test` แล้ว `npm --prefix apps/api test` ชุดทดสอบล้างรายการระหว่าง test จึงห้ามชี้ไปฐานข้อมูลใช้งานจริง
+```json
+{ "action": "start" }
+```
 
-ผลตรวจงานรอบนี้: lint / typecheck / build ผ่านทั้ง web และ API, contract tests 4 ข้อผ่าน, API integration tests 20 ข้อผ่านบน PostgreSQL 16 ชั่วคราว และทดสอบ migration กับข้อมูลเก่าครบ 5 ค่าแล้ว สถานะอนุมัติและจำนวนแถวคงเดิม รวมถึงรายการ approved ไม่ถูกปิดงานอัตโนมัติ apply migration กับฐานข้อมูล local เดโม่แยกที่พอร์ต 55432 แล้ว โดยไม่แตะฐานข้อมูลเดิมของผู้ใช้
+```json
+{ "action": "close" }
+```
+
+Choose the assignment ID from `GET /api/auth/assignees` (TA-only) and use the latest record timestamp. No `assigneeEmail` actor field is accepted.
+
+Manager `PATCH /api/requests/:id/approval-status`:
+
+```json
+{ "approvalStatus": "approved", "reason": "Budget and supervised access confirmed." }
+```
+
+Use `rejected` for rejection. Reason must contain 1–2000 characters after trimming. The server records reviewer ID/name/email and time in `approval_decisions` in the same transaction as the status update. The unique request ID and conditional update prevent concurrent final decisions. Past reviewer snapshots remain meaningful if an account name changes later.
+
+The compatibility `/status` endpoint accepts only TA `in_progress` or `closed` with identical ownership, transition, and approval checks. The old public API experiment is removed. This is a breaking API change for callers that previously sent requester/assignee emails or changed statuses without a session.
+
+Members can list/read only their own requests. TA and Manager can list/read all. Manager-only `/api/requests/reports` returns aggregates by work status, approval status, and category with optional inclusive UTC creation dates `from`/`to`.
+
+## Migrations and existing data
+
+- `20260912000000_separate_request_status`: preserved all five legacy approval values in `approvalStatus`; initialized work to pending (cancelled remains cancelled), approval required, medium priority, empty location.
+- `20260912010000_request_assignment`: added nullable assignee email and index.
+- `20260912020000_sessions_and_manager`: adds users, opaque hashed sessions, and approval decision records. It does not delete or rewrite old requests.
+
+Historical final decisions without reviewer metadata remain visible with their existing status. No reviewer or reason is fabricated. Old unapproved in-progress requests must be approved before closing. Old assignees must correspond to an active TA account to work through login; requests in pending/assigned can be reassigned by a TA.
+
+Stop the API, run `npx prisma generate` and `npx prisma migrate deploy` from `apps/api`, then restart. Do not reset an existing database. Seed local accounts once; see [local setup](LOCAL-DEMO.md).
+
+## Verification
+
+`npm --prefix apps/web run test:contracts` compares frontend/API/Prisma enum values. API tests require a dedicated database ending in `_test` and cover role boundaries, actor spoofing, password/session checks, ownership, approval gates, immutable audit data, assignment, reports, and concurrency. See the root README for lint, typecheck, build, and test commands.

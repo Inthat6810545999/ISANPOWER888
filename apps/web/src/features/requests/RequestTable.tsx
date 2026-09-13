@@ -110,7 +110,14 @@ export function RequestTable({ title, requests, renderRowActions }: {
           <div><dt>Requested by</dt><dd>{selected.requester.name}</dd></div><div><dt>Assigned to</dt><dd>{selected.assignee?.name ?? "Unassigned"}</dd></div>
           <div><dt>Category</dt><dd>{CATEGORIES[selected.category]}</dd></div><div><dt>Priority</dt><dd className={styles.priority}>{selected.priority}</dd></div>
           <div><dt>Location</dt><dd>{selected.location || "Not specified"}</dd></div><div><dt>Needed by</dt><dd>{formatDate(selected.neededBy)}</dd></div>
-        </dl><p className={styles.helper}>Saved to your lab workspace · Status updates automatically.</p>
+        </dl>
+        {selected.decision && <section className={styles.decisionRecord}>
+          <h3>Approval decision: {APPROVAL_LABELS[selected.decision.outcome]}</h3>
+          <p className={styles.description}>{selected.decision.reason}</p>
+          <p>Reviewed by {selected.decision.reviewerName} ({selected.decision.reviewerEmail})</p>
+          <p>{new Date(selected.decision.reviewedAt).toLocaleString()}</p>
+        </section>}
+        <p className={styles.helper}>Saved to your lab workspace · Status updates automatically.</p>
       </div>
     </Dialog>}
   </>;
