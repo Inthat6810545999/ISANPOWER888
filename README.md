@@ -106,7 +106,7 @@ Open [Sign in](http://127.0.0.1:3000/login). After login the server selects the 
 | Manager approvals | `/manager/approvals` |
 | Manager dashboard/reports | `/manager/reports` |
 
-`/` redirects to login or the signed-in user's workspace. Opening another role's route redirects to your own workspace; calling another role's API or Server Action is still denied independently.
+`/` shows the public lab landing page with an overview, workflow guide, and a contact placeholder. Its login links lead to `/login`. Opening another role's route redirects to your own workspace; calling another role's API or Server Action is still denied independently.
 
 ### Starting again later
 
