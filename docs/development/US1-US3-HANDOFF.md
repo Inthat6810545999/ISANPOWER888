@@ -1,46 +1,43 @@
-# US-1 / US-2 / US-3 — Handoff
+# Feature handoff: Member, TA, and Lab Manager
 
-โครง Next.js + TypeScript เชื่อม Member และ TA ผ่าน Express + Prisma + PostgreSQL แล้ว ดู [วิธีรัน local โดยไม่ใช้ Docker และขั้นตอนพรีเซนต์](LOCAL-DEMO.md)
+The shared Next.js/TypeScript frontend uses Express, Prisma, and PostgreSQL. Follow the [local guide](LOCAL-DEMO.md) to run without Docker.
 
-| User story | Route | Feature directory |
+| Feature | Route | Directory |
 | --- | --- | --- |
 | US-1 Submission | `/workspace/requests/new` | `apps/web/src/features/request-submission/` |
 | US-2 My Requests | `/workspace/my-requests` | `apps/web/src/features/my-requests/` |
 | US-3 TA Queue | `/ta/queue` | `apps/web/src/features/ta-queue/` |
+| Manager decisions/reports | `/manager/approvals`, `/manager/reports` | `apps/web/src/features/manager/` |
+| Login | `/login` | `apps/web/src/app/login/`, `apps/api/src/auth/` |
 
-## ส่วนกลางที่เชื่อมแล้ว
+## Shared implementation
 
-- `components/workspace/` และ `components/ta/` แยกเมนู/หน้าตา Member และ TA; route เก่า `/workspace/ta-queue` redirect ไป TA
-- `features/requests/actions.ts`: Server Actions เรียก API และ map category/type, dates, requester/assignee
-- `RequestsProvider.tsx`: shared API state, loading/error/success, refresh เมื่อเข้า/กลับหน้าและทุก 4 วินาที ไม่มี mock fallback
-- `RequestTable.tsx`: ตาราง, filters, pagination, details ที่อัปเดตตามข้อมูลล่าสุด
-- `demo-identity.ts`: fixed member/TA สำหรับพรีเซนต์ ไม่ใช่ระบบ login
-- POST บันทึกฟิลด์ฟอร์มครบใน PostgreSQL; TA Claim / Start work / Mark closed บันทึกผู้รับงานและสถานะจริง ใช้ atomic update ป้องกัน stale action และแย่งรับงาน
-- ดู [status contract](REQUEST-STATUS-CONTRACT.md) สำหรับ enum และ migration
+- Protected layouts and separate navigation for all three roles; Manager has no TA inheritance.
+- API role checks on every endpoint, session-derived actors, Member ownership filtering, and active TA assignment targets.
+- Password login with opaque database sessions; seeded demo accounts are provisioned once with random passwords.
+- Server Actions validate the required role and call the server-only API client.
+- Shared request provider, live refresh, loading/errors, details, and approval audit records. Mock records are reference fixtures only.
+- Work and approval states are independent. Required approval gates both start and close. See the [status contract](REQUEST-STATUS-CONTRACT.md).
+- Legacy unrestricted root form removed; `/` now selects the verified user's workspace.
 
-## งานที่เพื่อนทำต่อ
+## Follow-up work for teammates
 
-- US-1: ใช้ requester จาก authenticated session, เพิ่ม validation/business rules ตาม requirement และทดสอบสิทธิ์ submit
-- US-2: ใช้ session ownership และบังคับที่ backend, เพิ่ม API pagination หากข้อมูลมาก
-- US-3: ใช้ TA identity/role จาก session, ทำกฎ assignment/approval ตามที่ทีมตกลง
-- Login: เพิ่ม user model และ session; ตรวจทั้ง Server Actions และ API ไม่ใช่เพียงซ่อนเมนู การส่ง email หรือการแยก URL ไม่ใช่ authorization
-- Approval: ยังไม่มีหน้า Lab Manager/approval gate; สถานะอนุมัติแยกจากงานและไม่เปลี่ยนอัตโนมัติเมื่อปิดงาน
-- `mock-data.ts` เป็น fixture เก่าสำหรับอ้างอิงภาพ ไม่มีการ import ในหน้าที่เชื่อมแล้ว
+- Extend login/account lifecycle without reintroducing client email/role authority. SSO, recovery, MFA, and user administration remain future work.
+- Add server-side pagination if data volume grows; current list/search/filter UI loads the authorized request list.
+- Agree on cancellation, reopening, and historical decision correction rules before adding actions; final decisions are currently immutable.
+- Preserve session and approval checks on new Server Actions and API endpoints. Hiding a button is not authorization.
+- Preserve both status fields and audit snapshots when changing request models.
 
-## แยก branch
+For simultaneous presentation roles use separate browsers/profiles, not normal tabs sharing a cookie. Never commit environment files or `apps/api/.demo-accounts.json`.
 
-หลัง merge งานส่วนกลางเข้า main แล้ว แต่ละคนใช้:
+## Branch workflow
 
-```bash
+After the shared changes are merged:
+
+```powershell
 git switch main
 git pull --ff-only origin main
-git switch -c features/login
+git switch -c features/your-feature
 ```
 
-เปลี่ยนชื่อ branch ตามฟีเจอร์ เช่น `features/request-submission`, `features/my-requests`, `features/ta-queue` แล้วทำ PR กลับ main นัดกันก่อนแก้ shared types, migrations, provider, API client และ shared CSS เพื่อลด conflict
-
-## ตรวจงานก่อน PR
-
-รัน lint/typecheck/build และ contract tests ตาม [LOCAL-DEMO.md](LOCAL-DEMO.md) จากนั้นทดสอบ Member submit → TA claim/start/close → Member เห็นสถานะเดียวกัน ตรวจการ refresh, ความคงอยู่หลัง restart และ API error
-
-API tests ใช้ PostgreSQL แยกชื่อท้าย `_test` เท่านั้น (tests ล้างข้อมูล) มีกรณี flow ครบ, ownership filter, approval/work แยกกัน, concurrent claims และ stale actions
+Coordinate changes to schema/migrations, sessions, shared types, providers, API clients, and CSS. Run lint/typecheck/build, frontend contract tests, and API tests against a separate `_test` database. Check the full Member → TA claim → Manager approve → assigned TA start/close → Member flow, rejection, and denied cross-role access before a pull request.

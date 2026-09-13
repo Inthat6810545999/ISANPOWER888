@@ -1,8 +1,11 @@
 "use server";
 
-import { createLabRequest, listLabRequests, performLabRequestTaAction, type LabRequest } from "@/lib/api";
-import { DEMO_MEMBER, DEMO_TA, personFromEmail } from "./demo-identity";
+import { createLabRequest, listLabRequests, performLabRequestTaAction, reviewLabRequest, listAssignees, getReport, type TaAction, type LabRequest } from "@/lib/api";
+import { personFromEmail } from "./demo-identity";
 import { CATEGORIES, PRIORITIES, type RequestDraft, type WorkspaceRequest } from "./types";
+
+import { requireActionRole } from "@/lib/session";
+import type { Role } from "@/lib/session-types";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -13,7 +16,7 @@ function toWorkspace(request: LabRequest): WorkspaceRequest {
     status: request.status, approvalStatus: request.approvalStatus,
     requester: personFromEmail(request.requesterEmail),
     assignee: request.assigneeEmail ? personFromEmail(request.assigneeEmail) : null,
-    createdAt: request.createdAt };
+    createdAt: request.createdAt, updatedAt: request.updatedAt, decision: request.decision };
 }
 
 function failure(error: unknown): { ok: false; error: string } {
@@ -23,10 +26,11 @@ function failure(error: unknown): { ok: false; error: string } {
     : message };
 }
 
-export async function loadRequests(scope: "member" | "ta"): Promise<Result<WorkspaceRequest[]>> {
+export async function loadRequests(scope: Role): Promise<Result<WorkspaceRequest[]>> {
   try {
-    if (scope !== "member" && scope !== "ta") throw new Error("Invalid workspace.");
-    return { ok: true, data: (await listLabRequests(scope === "member" ? DEMO_MEMBER.id : undefined)).map(toWorkspace) };
+    if (scope !== "member" && scope !== "ta" && scope !== "lab_manager") throw new Error("Invalid workspace.");
+    await requireActionRole(scope);
+    return { ok: true, data: (await listLabRequests()).map(toWorkspace) };
   } catch (error) { return failure(error); }
 }
 
@@ -43,19 +47,35 @@ export async function submitRequest(draft: RequestDraft): Promise<Result<Workspa
         !Number.isFinite(Date.parse(draft.neededBy)) || new Date(draft.neededBy).toISOString().slice(0, 10) !== draft.neededBy)) {
       throw new Error("Please choose a valid date.");
     }
+    await requireActionRole("member");
     const saved = await createLabRequest({ title: draft.title.trim(), description: draft.description.trim(),
       type: draft.category, priority: draft.priority, location: draft.location.trim(),
       requiresApproval: draft.requiresApproval, neededBy: draft.neededBy ? `${draft.neededBy}T00:00:00.000Z` : undefined,
-      requesterEmail: DEMO_MEMBER.id });
+ });
     return { ok: true, data: toWorkspace(saved) };
   } catch (error) { return failure(error); }
 }
 
-export async function changeTaRequest(id: string, action: "claim" | "start" | "close"): Promise<Result<WorkspaceRequest>> {
+export async function changeTaRequest(id: string, payload: TaAction): Promise<Result<WorkspaceRequest>> {
   try {
-    if (typeof id !== "string" || !/^[a-zA-Z0-9-]{1,100}$/.test(id) || !["claim", "start", "close"].includes(action)) {
-      throw new Error("Invalid request action.");
-    }
-    return { ok: true, data: toWorkspace(await performLabRequestTaAction(id, action, DEMO_TA.id)) };
+    await requireActionRole("ta");
+    return { ok: true, data: toWorkspace(await performLabRequestTaAction(id, payload)) };
   } catch (error) { return failure(error); }
+}
+
+export async function reviewRequest(id: string, decision: "approved" | "rejected", reason: string): Promise<Result<WorkspaceRequest>> {
+  try {
+    await requireActionRole("lab_manager");
+    return { ok: true, data: toWorkspace(await reviewLabRequest(id, decision, reason)) };
+  } catch (error) { return failure(error); }
+}
+
+export async function loadAssignees() {
+  await requireActionRole("ta");
+  return listAssignees();
+}
+
+export async function loadReport(from = "", to = "") {
+  await requireActionRole("lab_manager");
+  return getReport(from, to);
 }

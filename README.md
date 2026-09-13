@@ -1,91 +1,46 @@
 # ISANPOWER888
 
-A lab request management system for coordinating equipment, space, consumables, access, visitor sessions, and general support.
+A lab request workspace built with Next.js, TypeScript, Express, Prisma, and PostgreSQL. Members submit requests, TAs manage the work, and Lab Managers make approval decisions and review reports. All three workspaces use the same database.
 
-Lab Members submit and track requests. Teaching Assistants (TAs) view the shared queue, claim requests, start work, and close completed tasks. Both workspaces use the same Express API and PostgreSQL database.
+## Roles and workflow
 
-**Current scope:** a working local presentation demo for US-1, US-2, and US-3. Login, authenticated sessions, role-based authorization, and the Lab Manager approval interface are not implemented yet.
+| Capability | Lab Member | TA | Lab Manager |
+| --- | --- | --- | --- |
+| Submit requests | Yes | No | No |
+| List and read request details | Own requests | All requests | All requests |
+| Claim or assign work to an active TA | No | Yes | No |
+| Start and close work | No | Assigned TA only | No |
+| Approve or reject with a reason | No | No | Yes |
+| Dashboard, date filters, aggregate CSV reports | No | No | Yes |
 
-## Contents
+**Lab Manager does not inherit TA permissions.** Work and approval are separate fields:
 
-- [Implemented features](#implemented-features)
-- [Technology stack](#technology-stack)
-- [Local setup in VS Code](#local-setup-in-vs-code)
-- [Presentation walkthrough](#presentation-walkthrough)
-- [Development and testing](#development-and-testing)
-- [Repository structure](#repository-structure)
-- [API reference](#api-reference)
-- [Team workflow](#team-workflow)
-- [Project documents](#project-documents)
-- [Team](#team)
+- Work: `pending → assigned → in_progress → closed`.
+- Approval: `not_required`, or `submitted → approved / rejected`.
+- A TA may claim or assign a request while approval is pending. Starting and closing require `approved` if the request requires approval; otherwise they require `not_required`.
+- Rejected requests cannot start or close successfully. Existing unapproved work that was already in progress in an older demo is also blocked from closing.
+- Approval never changes work status. Closing never changes approval or its audit record.
+- Every final decision requires a reason and records the verified reviewer ID, name, email, and server timestamp. Final decisions cannot be overwritten.
 
-## Implemented features
-
-| User story | Feature | Route |
-| --- | --- | --- |
-| US-1 | Submit a request with category, priority, description, location, due date, and an approval requirement | `/workspace/requests/new` |
-| US-2 | View member requests, search, filter, sort, and inspect details | `/workspace/my-requests` |
-| US-3 | View pending requests, claim work, start work, and close requests | `/ta/queue` |
-
-- Requests and assignments are persisted in PostgreSQL and survive application restarts.
-- Member and TA pages refresh every four seconds while visible, when returning to a tab, and through the **Refresh requests** button.
-- Submission shows success only after the API saves the request. Failed submissions retain form input for retry.
-- TA actions check the current status and assignee atomically to prevent conflicting claims and stale updates.
-- Work status and approval status are independent. Approving a request does not close the work, and closing work does not approve it.
-
-### Demo identities and remaining work
-
-| Workspace | Display name | Demo identity |
-| --- | --- | --- |
-| Lab Member | Theewasu A. | `member@isanpower.test` |
-| Teaching Assistant | Kantee L. | `ta@isanpower.test` |
-
-Server Actions select these fixed identities for the demo. They are not login credentials. Separate routes and email filters do not enforce authorization; real sessions and API role checks are still required before deployment for multiple users.
-
-The approval requirement is stored and displayed, but an approval gate and Lab Manager interface are still pending. The original `/` page is an API experiment with direct status controls; use the workspace routes above for presentations.
-
-## Technology stack
-
-| Layer | Implementation |
-| --- | --- |
-| Runtime | Node.js 24 for the documented development and test commands |
-| Frontend | Next.js 16 App Router, React 19, TypeScript, CSS Modules, Tailwind CSS 4 |
-| Backend | Express 5, TypeScript, Zod validation |
-| Database | PostgreSQL 16, Prisma 6, versioned SQL migrations |
-| Verification | ESLint, TypeScript, Vitest, Supertest, Node.js contract tests |
-
-Request flow: **Next.js UI → Server Action → Express API → Prisma → PostgreSQL**.
+Legacy `under_review` and `cancelled` values remain readable for compatibility. The current UI does not offer cancellation or reopening decisions.
 
 ## Local setup in VS Code
 
-This setup runs PostgreSQL, the API, and the frontend locally. Docker and custom startup scripts are not required.
+Run everything locally; Docker and custom startup scripts are not needed. Use Node.js 24 and a running PostgreSQL service (PostgreSQL 16 is used for integration tests; the local setup also runs on PostgreSQL 18).
 
-### 1. Prepare the project
+### 1. Open the project and create a database
 
-Install Node.js 24 and PostgreSQL 16. Use pgAdmin or another PostgreSQL client to manage the database. Make sure the PostgreSQL service is running.
+Open the repository folder in VS Code and select **Terminal → New Terminal**. New terminal commands below start at the repository root.
 
-Clone the repository if needed:
-
-```powershell
-git clone https://github.com/Inthat6810545999/ISANPOWER888.git
-cd ISANPOWER888
-```
-
-In VS Code, select **File → Open Folder** and open `ISANPOWER888`. Open a terminal through **Terminal → New Terminal**. The commands below assume each new terminal starts at the repository root.
-
-### 2. Create a local database
-
-Connect to your PostgreSQL server in pgAdmin. Create a database named `isanpower_local` through **Databases → Create → Database**, or run the following once in the Query Tool while connected to the `postgres` database:
+In pgAdmin, create `isanpower_local` under **Databases → Create → Database**. Skip this if it already exists. Alternatively, run this once while connected to the `postgres` database:
 
 ```sql
 CREATE DATABASE isanpower_local;
 ```
 
-Use a PostgreSQL account that owns the database or has permission to create its tables and apply migrations. Skip creation if this database already exists.
+### 2. Configure local environment files
 
-### 3. Configure the environment
-
-Create `apps/api/.env` using [apps/api/.env.example](apps/api/.env.example) as a starting point:
+Create `apps/api/.env` using `apps/api/.env.example`:
 
 ```dotenv
 NODE_ENV=development
@@ -95,7 +50,7 @@ DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@127.0.0.1:5432/isanpower_local
 CORS_ORIGIN=http://127.0.0.1:3000
 ```
 
-Replace `postgres`, `YOUR_PASSWORD`, and port `5432` with your own PostgreSQL connection details. Percent-encode special characters in the password portion of the URL. The example password is a placeholder.
+Use your PostgreSQL username, password, and port. Percent-encode special characters in the URL password. API port `4000` and database port `5432` are different services.
 
 Create `apps/web/.env.local`:
 
@@ -103,23 +58,37 @@ Create `apps/web/.env.local`:
 API_BASE_URL=http://127.0.0.1:4000
 ```
 
-`API_BASE_URL` is used by the Next.js server. Restart the relevant app after changing its environment file. Local environment files are ignored by Git; commit only example files with placeholder values.
+Restart the relevant server after changing an environment file. Commit placeholder `.env.example` files only, never real `.env`, `.env.local`, or `.demo-accounts.json` files.
 
-### 4. Terminal 1: start the API
+### 3. Terminal 1: database migrations, accounts, and API
 
 ```powershell
 cd apps/api
 npm ci
 npx prisma generate
 npx prisma migrate deploy
+npm run seed:demo
 npm run dev
 ```
 
-Keep this terminal open. Check [API health](http://127.0.0.1:4000/api/health); a working setup returns `"status": "ok"` and `"database": "connected"`.
+Run `seed:demo` **once per database**. It creates four local accounts with independently generated random passwords, saved in the ignored file `apps/api/.demo-accounts.json`. Open that file privately in VS Code for login credentials. Do not commit or distribute it. Each teammate seeds accounts for their own database.
 
-### 5. Terminal 2: start the frontend
+| Account | Role |
+| --- | --- |
+| `member@isanpower.test` | Lab Member |
+| `ta@isanpower.test` | TA (Kantee L.) |
+| `ta2@isanpower.test` | TA (Tanon L.), for assignment demos |
+| `manager@isanpower.test` | Lab Manager |
 
-Click **+** in the VS Code terminal panel to open a second terminal at the repository root:
+The seed refuses to overwrite existing accounts, roles, passwords, or its credential file, and refuses production mode. If accounts already exist, use their original credentials and omit the seed command. There is no password reset UI yet.
+
+Migrations add tables without deleting existing requests. Do not use `prisma migrate reset` on your presentation database. When upgrading, stop the API before generating Prisma Client on Windows to avoid a locked query-engine DLL.
+
+Leave Terminal 1 running. Check [API health](http://127.0.0.1:4000/api/health): it should report `status: ok` and `database: connected`.
+
+### 4. Terminal 2: frontend
+
+Open a new terminal at the repository root:
 
 ```powershell
 cd apps/web
@@ -127,52 +96,79 @@ npm ci
 npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-Open the workspaces:
+Open [Sign in](http://127.0.0.1:3000/login). After login the server selects the workspace from the account's database role:
 
-- [Lab Member](http://127.0.0.1:3000/workspace/my-requests)
-- [TA Queue](http://127.0.0.1:3000/ta/queue)
+| Workspace | Route |
+| --- | --- |
+| Member requests | `/workspace/my-requests` |
+| Member submission | `/workspace/requests/new` |
+| TA queue | `/ta/queue` |
+| Manager approvals | `/manager/approvals` |
+| Manager dashboard/reports | `/manager/reports` |
 
-A new database starts with an empty queue. Create requests through the Member form to populate it.
+`/` redirects to login or the signed-in user's workspace. Opening another role's route redirects to your own workspace; calling another role's API or Server Action is still denied independently.
 
 ### Starting again later
 
-Start PostgreSQL, then run the following in separate terminals from the repository root:
+Start PostgreSQL, then run `npm run dev` from `apps/api` and `npm run dev -- --hostname 127.0.0.1 --port 3000` from `apps/web` in separate terminals. Keep both open; Ctrl+C stops each service without deleting data.
 
-| Terminal | Directory | Command |
-| --- | --- | --- |
-| API | `cd apps/api` | `npm run dev` |
-| Web | `cd apps/web` | `npm run dev -- --hostname 127.0.0.1 --port 3000` |
-
-Run `npm ci` again when dependencies change. Run `npx prisma generate` and `npx prisma migrate deploy` from `apps/api` after pulling schema or migration changes.
-
-Press **Ctrl+C** in each terminal to stop its server. Stopping the apps does not delete database records. Stop an older server before starting another instance on the same port.
-
-### Troubleshooting
-
-| Symptom | Check |
-| --- | --- |
-| Database connection or authentication error | Confirm PostgreSQL is running and `DATABASE_URL` has the correct account, password, port, and database name. |
-| Database tables or columns are missing | Run `npx prisma migrate deploy` from `apps/api` against the intended database. |
-| Member or TA shows an API connection error | Check the health endpoint, confirm the API is running on port 4000, and check `apps/web/.env.local`. |
-| Port 3000 or 4000 is already in use | Stop the previous project server in its terminal before restarting. |
-| PowerShell blocks `npm.ps1` or `npx.ps1` | Use `npm.cmd` and `npx.cmd` in place of `npm` and `npx`. |
-| A teammate does not see local requests | Each computer has its own local database unless both apps are explicitly configured to use a shared API. Git does not transfer database records. |
+Repeat `npm ci` only when dependencies change. After pulling migrations, stop the API, run `npx prisma generate` and `npx prisma migrate deploy` from `apps/api`, then restart. Do not seed again if accounts exist.
 
 ## Presentation walkthrough
 
-1. Open the Member workspace and TA Queue in separate tabs.
-2. In Member, select **New request**, fill in the required fields, and submit.
-3. Confirm the saved request appears in **My requests** with status **Pending**.
-4. Switch to TA and wait for refresh, or click **Refresh requests**. The same request should appear.
-5. Click **Claim**. The request moves to **Assigned to me** with status **Assigned**.
-6. Click **Start work**, then **Mark closed**. Check Member after each action to see **In progress**, then **Closed**.
-7. Reload the pages to confirm that the saved request and its status persist.
+Use **separate browser profiles or different browsers** for Member, TA, and Manager. Tabs in the same browser profile and host share one login cookie; opening three tabs does not create three independent sessions. Alternatively, sign out and sign in sequentially in one browser.
 
-If **Requires Lab Manager approval** was selected, the approval state remains separate throughout this work-status flow.
+1. Member: create a request with **Requires Lab Manager approval** checked. The request starts as **Pending**, approval **Submitted**.
+2. TA: refresh the queue and **Claim**, or select another TA under **Assign to TA**. The work becomes **Assigned** while approval stays **Submitted**. **Start work** is disabled.
+3. Manager: open **Approvals**, select **Review**, choose **Approve**, write a reason, and save. The record now shows the reviewer and review time.
+4. Assigned TA: refresh and select **Start work**, then **Mark closed**.
+5. Member: verify the same request becomes **In progress**, then **Closed**, while approval remains **Approved** and its decision history is visible in details.
+6. Repeat with a second request and choose **Reject** in Manager. TA cannot start or successfully close it.
+7. Create a request without approval and demonstrate normal TA claim/start/close.
+8. Manager: open **Dashboard / Reports**, filter by creation date (UTC), refresh, and download the aggregate CSV.
+
+Request lists refresh every four seconds while visible, on focus, and manually. Reports refresh on entry and through their refresh button. Failed submissions retain form input and never show saved success. No connected page falls back to mock records.
+
+## Authentication scope and limitations
+
+This version has password verification and database-backed sessions with server/API role enforcement. It no longer grants permissions from fixed demo identities, an email in a payload, a role header, or a client-side role selector.
+
+Passwords are stored as salted scrypt hashes. Login returns a random opaque session token; PostgreSQL stores only its SHA-256 hash with an eight-hour expiry. Next.js stores the token in an HttpOnly, SameSite=Lax cookie (Secure in production) and forwards it server-to-server as a Bearer token. Each protected API request reloads the session, active account, and current role. Logout revokes the session. Next.js Server Actions retain their built-in origin protection; do not loosen allowed origins for untrusted sites.
+
+**This is a local presentation authentication implementation, not a complete production identity platform.** Accounts are manually seeded demo accounts. There is no SSO, self-registration, password recovery, MFA, user administration, or production security review. Login throttling is in-memory for one API process. Production requires HTTPS, secure account provisioning, a shared rate limiter, and deployment-specific hardening. Existing request ownership remains email-based; a future email-change feature must migrate ownership consistently. Historical approval values are preserved, but reviewer metadata is not invented for old decisions.
+
+## API reference
+
+Base URL: `http://127.0.0.1:4000`. All endpoints except health and login require `Authorization: Bearer <session token>`.
+
+| Method | Endpoint | Allowed role / purpose |
+| --- | --- | --- |
+| GET | `/api/health` | Public API/database health |
+| POST | `/api/auth/login` | Public; strict `{email, password}` |
+| GET | `/api/auth/me` | Verified session account |
+| POST | `/api/auth/logout` | Revoke current session |
+| GET | `/api/auth/assignees` | TA; active TA accounts only |
+| GET | `/api/requests` | Member: own; TA/Manager: all |
+| POST | `/api/requests` | Member; requester comes from session |
+| GET | `/api/requests/:id` | Member: own; TA/Manager: all |
+| PATCH | `/api/requests/:id/ta-action` | TA; claim, assign, start, close |
+| PATCH | `/api/requests/:id/status` | TA compatibility route; start/close with identical gates |
+| PATCH | `/api/requests/:id/approval-status` | Manager; approve/reject with reason |
+| GET | `/api/requests/reports` | Manager; optional `from`/`to` ISO dates, UTC creation dates |
+
+POST request fields: `title`, `type`, optional `description`, `priority`, `location`, `neededBy`, `requiresApproval`. The Member form requires a description too. Sending `requesterEmail`, `role`, or initial statuses is rejected.
+
+TA payloads are `{action: "claim"}`, `{action: "start"}`, `{action: "close"}`, or `{action: "assign", assigneeId, expectedUpdatedAt}`. Assignment accepts only an active TA's database ID and the latest request timestamp. It is allowed only before work starts. Only the assigned TA can start/close. The legacy `/status` accepts only `{status: "in_progress"}` or `{status: "closed"}` with the same checks.
+
+Manager payload: `{approvalStatus: "approved" | "rejected", reason}`. The reason is trimmed and must contain 1–2000 characters. The server supplies all reviewer metadata. Review applies to active, required requests in `submitted` or `under_review`; a final decision cannot be replaced.
+
+List filters: `requesterEmail`, `status`, `approvalStatus`, `type`. A Member cannot use a filter to read another Member's data. Unauthenticated requests return 401, wrong-role actions 403, hidden/missing details 404, invalid fields 400, and workflow/concurrency conflicts 409. Updates use atomic state checks; decisions and audit records are saved in one transaction.
+
+See [Request status contract](docs/development/REQUEST-STATUS-CONTRACT.md) for enum and migration details.
 
 ## Development and testing
 
-Run these commands from the repository root:
+From the repository root:
 
 ```powershell
 npm --prefix apps/api run lint
@@ -184,9 +180,9 @@ npm --prefix apps/web run test:contracts
 npm --prefix apps/web run build
 ```
 
-### API integration tests
+The existing Next.js font setup downloads Google Fonts during a build, so that step requires network access.
 
-Create a separate PostgreSQL database whose name ends in `_test`, such as `isanpower_test`. In a separate terminal:
+For API integration tests, create a **separate database ending in `_test`**, then use a separate terminal:
 
 ```powershell
 cd apps/api
@@ -194,65 +190,36 @@ $env:DATABASE_URL = 'postgresql://postgres:YOUR_PASSWORD@127.0.0.1:5432/isanpowe
 npm test
 ```
 
-Replace the connection details before running. Tests apply migrations and delete request records between cases, so never point this command at a presentation or development database. Close the test terminal afterward so its test connection setting is not reused for the development server.
+Tests apply migrations and delete requests, decisions, users, and sessions between cases. Never use your development/presentation database. Close the test terminal afterward to avoid reusing its database override.
 
-The suite covers field persistence, member filtering, independent approval/work statuses, the Member-to-TA workflow, concurrent claims, and stale actions. Frontend contract tests compare status values across the UI, API, and Prisma schema.
+Coverage includes password login/logout/expiry, current database roles, unauthenticated access, cross-role actions, spoofed identity fields, Member ownership, assignment targets, concurrent claims/decisions, approval gates including the legacy status endpoint, rejection, immutable audit data, and Manager-only reports. Frontend contract tests compare UI, API, and Prisma status definitions. See [local demo notes](docs/development/LOCAL-DEMO.md) for manual checks.
 
-## Repository structure
+## Troubleshooting
 
-```text
-apps/
-  api/
-    prisma/              Database schema and SQL migrations
-    src/
-      config/            Environment validation
-      controllers/       Request validation and workflow handlers
-      db/                Prisma client and database connection
-      middleware/        Error handling
-      models/            Request enum definitions
-      routes/            API routes and integration tests
-      test/              Test database lifecycle
-  web/
-    scripts/             Contract tests; not startup scripts
-    src/
-      app/               Next.js routes and layouts
-      components/        Shared UI and separate Member/TA shells
-      features/          Submission, My Requests, TA Queue, and shared state
-      lib/               Server-only API client and status definitions
-docs/                    Project deliverables and development notes
-.github/workflows/       Workflow configuration
-```
-
-The frontend guide is in [apps/web/README.md](apps/web/README.md). Sample records in `mock-data.ts` remain as reference fixtures; connected Member and TA pages do not use them.
-
-## API reference
-
-Local base URL: `http://127.0.0.1:4000`.
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| GET | `/api/health` | Check API and database health |
-| GET | `/api/requests` | List requests; filters: `requesterEmail`, `status`, `approvalStatus`, `type` |
-| POST | `/api/requests` | Create a request |
-| GET | `/api/requests/:id` | Read a single request |
-| PATCH | `/api/requests/:id/ta-action` | Perform `claim`, `start`, or `close` with `assigneeEmail` |
-| PATCH | `/api/requests/:id/status` | Set work status through the existing API experiment |
-| PATCH | `/api/requests/:id/approval-status` | Set approval status independently |
-
-POST fields: `title`, `type`, `requesterEmail`, and optional `description`, `priority`, `location`, `neededBy`, `requiresApproval`. The Member form also requires a description. Initial statuses are set by the server.
-
-| Field | Values |
+| Symptom | Check |
 | --- | --- |
-| `type` | `equipment`, `space`, `consumable`, `access`, `visitor`, `general` |
-| `priority` | `low`, `medium`, `high` |
-| `status` | `pending`, `assigned`, `in_progress`, `closed`, `cancelled` |
-| `approvalStatus` | `not_required`, `submitted`, `under_review`, `approved`, `rejected`, `cancelled` |
+| Missing `DATABASE_URL` | Create `apps/api/.env`; `apps/web/.env.local` does not configure Prisma. |
+| Database connection/authentication error | Check the PostgreSQL service, password, database name, and database port. |
+| Missing tables or columns | Run `npx prisma migrate deploy` in `apps/api`. |
+| Invalid login | Use the generated password in `apps/api/.demo-accounts.json`; run the seed once if accounts do not exist. |
+| Redirected to another workspace | Your signed-in account has a different role. Sign out or use a separate browser profile. |
+| API connection error | Check port 4000 health and `API_BASE_URL`; restart the web app after env changes. |
+| Port already in use | Stop the previous project server before starting another. |
+| PowerShell blocks `npm.ps1` | Use `npm.cmd` / `npx.cmd`. |
+| Teammate cannot see local requests | Each computer has its own database. Git transfers code, not database records or account credentials. |
 
-New requests begin as `pending`. Approval begins as `submitted` when required, otherwise `not_required`. TA actions return HTTP 409 if the status or assignee has changed; the direct `/status` endpoint is separate from those TA transition checks.
+## Repository structure and team workflow
 
-## Team workflow
+- `apps/api/src/auth/`: password and session verification.
+- `apps/api/src/routes/`: API endpoints and integration tests.
+- `apps/api/src/controllers/`: validation, approval gates, assignment, reports.
+- `apps/api/prisma/`: schema and additive SQL migrations.
+- `apps/web/src/app/`: login and protected role layouts.
+- `apps/web/src/features/`: Member, TA, Manager, and shared request UI.
+- `apps/web/src/lib/`: server-only session/API clients and shared types.
+- `docs/development/`: setup, status contract, and handoff notes.
 
-Start a feature from the latest shared `main` after its foundation changes have been merged:
+Start each feature from the latest merged `main`:
 
 ```powershell
 git switch main
@@ -260,7 +227,7 @@ git pull --ff-only origin main
 git switch -c features/your-feature
 ```
 
-Before committing, review the changes:
+Before committing:
 
 ```powershell
 git status
@@ -268,40 +235,19 @@ git add --dry-run .
 git add .
 git diff --cached --name-status
 git diff --cached
-```
-
-`--dry-run` only previews files; `git add .` stages them. Press `q` to exit the diff viewer. Then commit and push:
-
-```powershell
 git commit -m "feat: describe your change"
 git push -u origin features/your-feature
 ```
 
-Use your actual feature branch name and open a pull request into `main`. Coordinate edits to shared types, the API client, providers, CSS, and migrations with teammates.
-
-### Automation configuration
-
-Container and GitHub Actions files remain in the repository, but are not needed for the local setup above. The current `ci.yml` contains an API job fragment and needs a complete workflow definition before it can run as CI. `cd.yml` defines image publishing to GitHub Container Registry on pushes to `main`, `v*` tags, or manual dispatch; publishing an image does not deploy the application to a server.
+`--dry-run` previews only; it does not stage files. Review the staged diff and keep credentials out of Git. Open a pull request to `main`; coordinate shared schema/session/provider changes with teammates. Container/CI files are outside this local implementation; running a local build does not verify deployment.
 
 ## Project documents
 
-| Document | File |
-| --- | --- |
-| Software proposal | [Software_Proposal_ISAN888.pdf](docs/Software_Proposal_ISAN888.pdf) |
-| Software requirements specification | [SRS_ISAN888.pdf](docs/SRS_ISAN888.pdf) |
-| Iteration report | [Iteration_Report_ISAN888.pdf](docs/Iteration_Report_ISAN888.pdf) |
-| Use case diagram | [Usecase.json](docs/Usecase.json) |
-| Activity diagram | [Activity_Diagram.json](docs/Activity_Diagram.json) |
-| Sequence diagrams | [Sequence.json](docs/Sequence.json) |
-| Project schedule | [Gant_Chart.json](docs/Gant_Chart.json) |
-
-Additional development notes are currently written in Thai:
-
-- [Local demo notes](docs/development/LOCAL-DEMO.md)
+- [Software proposal](docs/Software_Proposal_ISAN888.pdf)
+- [Software requirements](docs/SRS_ISAN888.pdf)
+- [Iteration report](docs/Iteration_Report_ISAN888.pdf)
 - [US-1 / US-2 / US-3 handoff](docs/development/US1-US3-HANDOFF.md)
-- [Request status contract and migrations](docs/development/REQUEST-STATUS-CONTRACT.md)
-
-## Team
+- [Frontend guide](apps/web/README.md)
 
 | Name | Student ID | GitHub |
 | --- | --- | --- |
@@ -310,4 +256,4 @@ Additional development notes are currently written in Thai:
 | Tanon Likhittaphong | 6710545547 | Tanon6710545547 |
 | Inthat Niramarn | 6810545999 | Inthat6810545999 |
 
-Course project: **Lab Workflow & Request Management System**, IRL Challenge Project B.
+Course project: Lab Workflow & Request Management System, IRL Challenge Project B.
