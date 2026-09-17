@@ -2,6 +2,12 @@
 
 A lab request workspace built with Next.js, TypeScript, Express, Prisma, and PostgreSQL. Members submit requests, TAs manage the work, and Lab Managers make approval decisions and review reports. All three workspaces use the same database.
 
+## Google sign-in and visitors
+
+The login page now offers **Sign in with Google** and **Continue as Guest**. New Google users start as `unassigned / PENDING` and see **Waiting for approval**. Guests see only Open House/public content. Existing users retain their stored membership and role. Internal access requires approved membership as well as the correct role.
+
+Google OAuth credentials are not included. Configure the Web application client and environment variables using the app `.env.example` files as references. Membership approval/rejection screens are outside this iteration. The existing request workflows below are unchanged.
+
 ## Roles and workflow
 
 | Capability | Lab Member | TA | Lab Manager |
@@ -20,7 +26,7 @@ A lab request workspace built with Next.js, TypeScript, Express, Prisma, and Pos
 - A TA may claim or assign a request while approval is pending. Starting and closing require `approved` if the request requires approval; otherwise they require `not_required`.
 - Rejected requests cannot start or close successfully. Existing unapproved work that was already in progress in an older demo is also blocked from closing.
 - Approval never changes work status. Closing never changes approval or its audit record.
-- Every final decision requires a reason and records the verified reviewer ID, name, email, and server timestamp. Final decisions cannot be overwritten.
+- Every final request decision requires a reason and records the verified reviewer ID, name, email, and server timestamp. Final decisions cannot be overwritten.
 
 Legacy `under_review` and `cancelled` values remain readable for compatibility. The current UI does not offer cancellation or reopening decisions.
 
@@ -96,7 +102,7 @@ npm ci
 npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-Open [Sign in](http://127.0.0.1:3000/login). After login the server selects the workspace from the account's database role:
+Open [Sign in](http://127.0.0.1:3000/login). After login the server selects the pending page or workspace from the account's database membership and role:
 
 | Workspace | Route |
 | --- | --- |
@@ -135,16 +141,18 @@ This version has password verification and database-backed sessions with server/
 
 Passwords are stored as salted scrypt hashes. Login returns a random opaque session token; PostgreSQL stores only its SHA-256 hash with an eight-hour expiry. Next.js stores the token in an HttpOnly, SameSite=Lax cookie (Secure in production) and forwards it server-to-server as a Bearer token. Each protected API request reloads the session, active account, and current role. Logout revokes the session. Next.js Server Actions retain their built-in origin protection; do not loosen allowed origins for untrusted sites.
 
-**This is a local presentation authentication implementation, not a complete production identity platform.** Accounts are manually seeded demo accounts. There is no SSO, self-registration, password recovery, MFA, user administration, or production security review. Login throttling is in-memory for one API process. Production requires HTTPS, secure account provisioning, a shared rate limiter, and deployment-specific hardening. Existing request ownership remains email-based; a future email-change feature must migrate ownership consistently. Historical approval values are preserved, but reviewer metadata is not invented for old decisions.
+**This is a local presentation authentication implementation, not a complete production identity platform.** Local demo accounts are manually seeded; Google registration creates accounts with pending membership. There is no membership approval UI, password recovery, MFA, user administration, or production security review. Login throttling is in-memory for one API process. Production requires HTTPS, secure account provisioning, a shared rate limiter, and deployment-specific hardening. Existing request ownership remains email-based; a future email-change feature must migrate ownership consistently. Historical approval values are preserved, but reviewer metadata is not invented for old decisions.
 
 ## API reference
 
-Base URL: `http://127.0.0.1:4000`. All endpoints except health and login require `Authorization: Bearer <session token>`.
+Base URL: `http://127.0.0.1:4000`. All endpoints except health, password login, and Google start/callback require `Authorization: Bearer <session token>`. Internal endpoints also require APPROVED membership and the correct role.
 
 | Method | Endpoint | Allowed role / purpose |
 | --- | --- | --- |
 | GET | `/api/health` | Public API/database health |
 | POST | `/api/auth/login` | Public; strict `{email, password}` |
+| POST | `/api/auth/google/start` | Public; create a short-lived OAuth attempt bound to the browser |
+| POST | `/api/auth/google/callback` | Public; verify state, binding, code and Google identity, then issue a session |
 | GET | `/api/auth/me` | Verified session account |
 | POST | `/api/auth/logout` | Revoke current session |
 | GET | `/api/auth/assignees` | TA; active TA accounts only |

@@ -2,7 +2,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { apiBaseUrl, SESSION_COOKIE, sessionToken } from "@/lib/session";
-import { roleHome, type SessionUser } from "@/lib/session-types";
+import { sessionHome, type SessionUser } from "@/lib/session-types";
 
 export async function login(_previous: { error: string }, form: FormData): Promise<{ error: string }> {
   let user: SessionUser;
@@ -16,7 +16,7 @@ export async function login(_previous: { error: string }, form: FormData): Promi
     user = body.user;
     (await cookies()).set(SESSION_COOKIE, body.token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", expires: new Date(body.expiresAt) });
   } catch { return { error: "Cannot reach the API. Check that your backend and database are running." }; }
-  redirect(roleHome[user.role]);
+  redirect(sessionHome(user));
 }
 
 export async function logout(): Promise<void> {
