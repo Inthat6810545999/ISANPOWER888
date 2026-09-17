@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import * as web from "../src/lib/request-status.ts";
 import * as api from "../../api/src/models/LabRequest.ts";
+import { hasInternalAccess, sessionHome } from "../src/lib/session-types.ts";
 
 const schema = readFileSync(new URL("../../api/prisma/schema.prisma", import.meta.url), "utf8");
 function prismaValues(name) {
@@ -36,4 +37,20 @@ test("closed and cancelled work is excluded from active TA actions", () => {
   assert.equal(web.isActiveStatus("pending"), true);
   assert.equal(web.isActiveStatus("assigned"), true);
   assert.equal(web.isActiveStatus("in_progress"), true);
+});
+
+// Membership authorization is separate from approval of individual requests.
+test("pending or unassigned users never receive an internal destination", () => {
+  const base = { id: "id", name: "User", email: "user@example.test" };
+  for (const role of ["unassigned", "member", "ta", "lab_manager"]) {
+    const pending = { ...base, role, membershipStatus: "PENDING" };
+    assert.equal(hasInternalAccess(pending), false);
+    assert.equal(sessionHome(pending), "/pending");
+  }
+  assert.equal(sessionHome({ ...base, role: "unassigned", membershipStatus: "APPROVED" }), "/pending");
+});
+test("approved members retain the existing role-specific destinations", () => {
+  for (const [role, destination] of [["member", "/workspace/my-requests"], ["ta", "/ta/queue"], ["lab_manager", "/manager/approvals"]]) {
+    assert.equal(sessionHome({ id: "id", name: "User", email: "user@example.test", role, membershipStatus: "APPROVED" }), destination);
+  }
 });

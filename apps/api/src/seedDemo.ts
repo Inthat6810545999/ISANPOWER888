@@ -20,7 +20,7 @@ try {
   }
   const credentials = await Promise.all(accounts.map(async (account) => {
     const password = randomBytes(18).toString("base64url");
-    return { ...account, password, passwordHash: await hashPassword(password) };
+    return { ...account, membershipStatus: "APPROVED" as const, password, passwordHash: await hashPassword(password) };
   }));
   await prisma.$transaction(credentials.map(({ password: _password, ...data }) => prisma.user.create({ data })));
   writeFileSync(output, JSON.stringify(credentials.map(({ passwordHash: _hash, ...account }) => account), null, 2), { flag: "wx", mode: 0o600 });

@@ -14,7 +14,7 @@ const validRequest = { title: "Book microscope room B2", type: "space" };
 type Account = { id: string; email: string; name: string; role: UserRole; token: string };
 let member: Account, otherMember: Account, ta: Account, otherTa: Account, manager: Account;
 async function account(name: string, role: UserRole): Promise<Account> {
-  const user = await prisma.user.create({ data: { email: `${name}@example.test`, name, role, passwordHash } });
+  const user = await prisma.user.create({ data: { email: `${name}@example.test`, name, role, membershipStatus: "APPROVED", passwordHash } });
   const token = randomBytes(32).toString("hex");
   await prisma.session.create({ data: { userId: user.id, tokenHash: tokenHash(token), expiresAt: new Date(Date.now() + 3600000) } });
   return { ...user, token };

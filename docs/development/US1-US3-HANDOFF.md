@@ -14,15 +14,15 @@ The shared Next.js/TypeScript frontend uses Express, Prisma, and PostgreSQL. Fol
 
 - Protected layouts and separate navigation for all three roles; Manager has no TA inheritance.
 - API role checks on every endpoint, session-derived actors, Member ownership filtering, and active TA assignment targets.
-- Password login with opaque database sessions; seeded demo accounts are provisioned once with random passwords.
+- Google login with opaque database sessions and pending membership for new accounts; password login remains available for seeded local demo accounts.
 - Server Actions validate the required role and call the server-only API client.
 - Shared request provider, live refresh, loading/errors, details, and approval audit records. Mock records are reference fixtures only.
 - Work and approval states are independent. Required approval gates both start and close. See the [status contract](REQUEST-STATUS-CONTRACT.md).
-- Legacy unrestricted root form removed; `/` now selects the verified user's workspace.
+- `/` and `/open-house` are public. Pending accounts are directed to `/pending` and cannot access internal pages or request APIs.
 
 ## Follow-up work for teammates
 
-- Extend login/account lifecycle without reintroducing client email/role authority. SSO, recovery, MFA, and user administration remain future work.
+- Extend login/account lifecycle without reintroducing client email/role authority. Membership approval screens, recovery, MFA, and user administration remain future work.
 - Add server-side pagination if data volume grows; current list/search/filter UI loads the authorized request list.
 - Agree on cancellation, reopening, and historical decision correction rules before adding actions; final decisions are currently immutable.
 - Preserve session and approval checks on new Server Actions and API endpoints. Hiding a button is not authorization.

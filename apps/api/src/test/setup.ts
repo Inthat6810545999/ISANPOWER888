@@ -15,6 +15,7 @@ beforeAll(() => {
 afterEach(async () => {
   await prisma.labRequest.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.oAuthAttempt.deleteMany();
 });
 
 afterAll(async () => {

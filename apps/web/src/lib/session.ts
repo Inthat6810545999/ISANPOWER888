@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { roleHome, type Role, type SessionUser } from "./session-types";
+import { sessionHome, hasInternalAccess, type InternalRole, type SessionUser } from "./session-types";
 
 export const SESSION_COOKIE = "isanpower_session";
 export const apiBaseUrl = process.env.API_BASE_URL ?? "http://127.0.0.1:4000";
@@ -15,16 +15,16 @@ export async function sessionUser(): Promise<SessionUser | null> {
   if (!response.ok) throw new Error("Unable to verify your session.");
   return (await response.json()).user;
 }
-export async function requireUser(role: Role) {
+export async function requireUser(role: InternalRole) {
   const user = await sessionUser();
   if (!user) redirect("/login");
-  if (user.role !== role) redirect(roleHome[user.role]);
+  if (!hasInternalAccess(user) || user.role !== role) redirect(sessionHome(user));
   return user;
 }
 // Actions return errors rather than redirecting inside their error handlers.
-export async function requireActionRole(role: Role) {
+export async function requireActionRole(role: InternalRole) {
   const user = await sessionUser();
   if (!user) throw new Error("Session expired. Sign in again.");
-  if (user.role !== role) throw new Error("Your role cannot perform this action.");
+  if (!hasInternalAccess(user) || user.role !== role) throw new Error("Your membership or role does not permit this action.");
   return user;
 }
