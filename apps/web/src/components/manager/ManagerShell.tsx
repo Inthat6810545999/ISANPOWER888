@@ -20,12 +20,13 @@ export function ManagerShell({ children }: { children: ReactNode }) {
       <nav className={styles.nav} aria-label="Lab Manager navigation">
         <Link href="/manager/approvals" aria-current={path === "/manager/approvals" ? "page" : undefined}>Request approvals</Link>
         <Link href="/manager/reports" aria-current={path === "/manager/reports" ? "page" : undefined}>Dashboard / Reports</Link>
+        <Link href="/manager/members" aria-current={path === "/manager/members" ? "page" : undefined}>Member approvals</Link>
       </nav>
       <div className={styles.sidebarNote}><small>REVIEW WITH CONTEXT</small><p>Clear decisions.<br />Recorded reasons.<br />A shared direction.</p><span /></div>
       <div className={styles.profile}><span className={styles.avatar}>{person.initials}</span><div><strong>{person.name}</strong><small>Lab Manager</small></div></div>
     </aside>
     <div className={styles.mainColumn}>
-      <header className={styles.topbar}><strong>Lab Manager / {path.endsWith("reports") ? "Dashboard & Reports" : "Approvals"}</strong><span>Manager session</span></header>
+      <header className={styles.topbar}><strong>Lab Manager / {path.endsWith("members") ? "Member approvals" : path.endsWith("reports") ? "Dashboard & Reports" : "Approvals"}</strong><span>Manager session</span></header>
       <main id="manager-content" className={styles.content}>
         <div className={styles.sessionBar}><span>{user.email}</span><SignOut /></div>
         {notice && <div className={styles.notice} role="status"><span>{notice}</span><button onClick={dismissNotice} aria-label="Dismiss notification">×</button></div>}

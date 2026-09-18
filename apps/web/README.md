@@ -24,7 +24,7 @@ Open [Sign in](http://127.0.0.1:3000/login). Credentials are generated once by `
 | Lab Manager | `/manager/approvals` | `features/manager/ManagerApprovals.tsx` |
 | Lab Manager | `/manager/reports` | `features/manager/ManagerReports.tsx` |
 
-`/` selects the signed-in workspace. Layouts check the verified role. Server Actions independently check permissions, and the API enforces them again. Manager does not inherit TA rights. The original public API experiment and its unrestricted status controls have been removed.
+`/` is the public landing page; `/open-house` is public visitor content, and `/pending` is for authenticated users awaiting membership. Internal layouts check approved membership and the verified role. Server Actions independently check permissions, and the API enforces them again. Manager does not inherit TA rights.
 
 ## Data and session flow
 
@@ -37,7 +37,7 @@ Open [Sign in](http://127.0.0.1:3000/login). Credentials are generated once by `
 
 TA can claim/assign before approval. Start/close are shown only for the assigned TA and blocked until required approval is granted. The API repeats these checks atomically. Manager can review and report, with no work actions. A final review needs a reason; reviewer identity/time are server-generated and immutable.
 
-These are verified sessions for manually seeded local demo accounts. Production provisioning, password recovery, SSO, MFA, and distributed throttling are not implemented. See the root README for the complete limitations.
+Sessions support Google accounts and manually seeded local demo accounts. Google requires OAuth credentials; new Google accounts remain pending. Membership approval screens, password recovery, MFA, and distributed throttling are not implemented. See the root README for the complete limitations.
 
 ## Checks
 
@@ -49,3 +49,9 @@ npm run build
 ```
 
 `next build` currently downloads the project's existing Google Fonts. Contract tests live in `scripts/`; they are not startup scripts. Follow the [presentation walkthrough](../../README.md#presentation-walkthrough) to verify all three roles and the approval gate.
+
+## Google and pending membership
+
+The current login page adds Google sign-in and Guest access. Secrets are backend-only. New users go to `/pending`; `/open-house` and the existing landing page are public. Password login remains an expandable local-demo option in development.
+
+`SessionUser` now includes `membershipStatus`, and `role` can be `unassigned`. Use `sessionHome()` for post-login routing and `requireUser()`/`requireActionRole()` for internal access. A role by itself is insufficient; membership must also be APPROVED. Do not add a client-controlled role selector or a membership promotion action. TA and Manager request workflows are unchanged.

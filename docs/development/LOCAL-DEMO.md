@@ -64,3 +64,7 @@ Local demo accounts now use password authentication and server/API role enforcem
 - Browser: Member password login and submission; Member-to-Manager URL denial; TA claim with disabled start while awaiting approval; Manager approve with reason; Manager-to-TA URL denial; assigned TA start/close; Member details retained the approval, reason, reviewer, and time. Manager dashboard rendered database aggregates.
 - API tests verified rejection, report date boundaries, session expiry/logout, forbidden API actions, and concurrent decisions. These checks do not constitute a production security audit.
 - The additive migration was applied to `isanpower_local`. Existing requests were preserved. One clearly labelled `Role workflow verification — local demo` request was created through the UI and left closed as a presentation example.
+
+## Google login update (2026-09-17)
+
+Configure Google OAuth environment variables before using the new Google button. The earlier password-based walkthrough remains available through **Local demo account** in development. New Google accounts cannot use internal workflows until membership and role are assigned separately; this iteration does not add member approval screens. Guest access opens `/open-house` without creating a user or session.

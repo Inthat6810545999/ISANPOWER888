@@ -83,7 +83,7 @@ async function executeTa(id: string, payload: TaAction, res: Response) {
   return prisma.$transaction(async (tx) => {
     let assigneeEmail = user.email;
     if (payload.action === "assign") {
-      const target = await tx.user.findFirst({ where: { id: payload.assigneeId, role: "ta", active: true } });
+      const target = await tx.user.findFirst({ where: { id: payload.assigneeId, role: "ta", active: true, membershipStatus: "APPROVED" } });
       if (!target) throw new HttpError(400, "Choose an active Teaching Assistant.");
       assigneeEmail = target.email;
     }
