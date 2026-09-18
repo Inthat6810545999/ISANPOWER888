@@ -62,7 +62,6 @@ model LabRequest {
 }
 
 enum UserRole {
-  admin
   unassigned
   member
   ta
@@ -81,8 +80,6 @@ model User {
   role         UserRole @default(unassigned)
   membershipStatus MembershipStatus @default(PENDING)
   googleSubject String? @unique
-  membershipApprovedBy String?
-  membershipApprovedAt DateTime?
   passwordHash String?
   active       Boolean @default(true)
   sessions     Session[]

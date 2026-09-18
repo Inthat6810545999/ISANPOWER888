@@ -6,7 +6,7 @@ A lab request workspace built with Next.js, TypeScript, Express, Prisma, and Pos
 
 The login page now offers **Sign in with Google** and **Continue as Guest**. New Google users start as `unassigned / PENDING` and see **Waiting for approval**. Guests see only Open House/public content. Existing users retain their stored membership and role. Internal access requires approved membership as well as the correct role.
 
-Google OAuth credentials are not included. Configure the Web application client and environment variables using the app `.env.example` files as references. Lab Managers review new registrations at `/manager/members`, choose Member, TA or Lab Manager, and approve access. System-admin roles cannot be granted from this screen. Pending users can use “Check membership status” to enter their assigned workspace after approval. Rejection and changes to existing approved accounts remain outside the membership-review screen; existing account management is available to system admins at `/admin`.
+Google OAuth credentials are not included. Configure the Web application client and environment variables using the app `.env.example` files as references. Membership approval/rejection screens are outside this iteration. The existing request workflows below are unchanged.
 
 ## Roles and workflow
 
