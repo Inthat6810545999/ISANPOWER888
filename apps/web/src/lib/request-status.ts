@@ -20,8 +20,8 @@ export const APPROVAL_LABELS: Record<ApprovalStatus, string> = {
   cancelled: "Approval cancelled",
 };
 
-export function initialApprovalStatus(requiresApproval: boolean): ApprovalStatus {
-  return requiresApproval ? "submitted" : "not_required";
+export function initialApprovalStatus(): ApprovalStatus {
+  return "submitted";
 }
 
 export function isActiveStatus(status: RequestStatus) {

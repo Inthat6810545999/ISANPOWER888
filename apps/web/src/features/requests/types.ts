@@ -23,16 +23,17 @@ export type RequestDraft = {
   description: string;
   location: string;
   neededBy: string;
-  requiresApproval: boolean;
 };
 
 export type WorkspaceRequest = RequestDraft & {
   id: string;
+  requiresApproval: boolean;
   status: Status;
   approvalStatus: ApprovalStatus;
   requester: Person;
   assignee: Person | null;
   createdAt: string;
   updatedAt?: string;
+  decisionHistory?: { id: string; outcome: ApprovalStatus; reason: string; reviewerName: string; reviewerEmail: string; reviewedAt: string; supersededAt?: string | null }[];
   decision?: { outcome: ApprovalStatus; reason: string; reviewerName: string; reviewerEmail: string; reviewedAt: string } | null;
 };

@@ -27,8 +27,7 @@ test("approval-status values and labels match the API and PostgreSQL schema", ()
 });
 
 test("new demo requests initialize approval exactly like the API", () => {
-  assert.equal(web.initialApprovalStatus(false), "not_required");
-  assert.equal(web.initialApprovalStatus(true), "submitted");
+  assert.equal(web.initialApprovalStatus(), "submitted");
 });
 
 test("closed and cancelled work is excluded from active TA actions", () => {

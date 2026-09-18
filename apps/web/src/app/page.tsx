@@ -5,7 +5,7 @@ import styles from "@/components/landing/landing.module.css";
 
 const steps = [
   { title: "Make a request.", text: "Sign in with your lab account. Tell us what you need, where you need it, and when." },
-  { title: "Let the team coordinate.", text: "A TA picks up your request. When approval is needed, a Lab Manager reviews it before work begins." },
+  { title: "Let the team coordinate.", text: "A Lab Manager reviews every request. Once approved, a TA can accept it and begin work." },
   { title: "Follow the progress.", text: "Check your workspace for updates, from assignment to work in progress and completion." },
 ];
 

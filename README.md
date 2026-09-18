@@ -16,7 +16,7 @@ The application has Member, TA and Lab Manager roles, with `unassigned / PENDING
 | --- | --- | --- | --- |
 | Submit requests | Yes | No | No |
 | List and read request details | Own requests | All requests | All requests |
-| Claim or assign work to an active TA | No | Yes | No |
+| Accept approved work for yourself | No | Yes | No |
 | Start and close work | No | Assigned TA only | No |
 | Approve or reject with a reason | No | No | Yes |
 | Dashboard, date filters, aggregate CSV reports | No | No | Yes |
@@ -24,8 +24,8 @@ The application has Member, TA and Lab Manager roles, with `unassigned / PENDING
 **Lab Manager does not inherit TA permissions.** Work and approval are separate fields:
 
 - Work: `pending → assigned → in_progress → closed`.
-- Approval: `not_required`, or `submitted → approved / rejected`.
-- A TA may claim or assign a request while approval is pending. Starting and closing require `approved` if the request requires approval; otherwise they require `not_required`.
+- Approval for every new request: `submitted → approved / rejected`. `not_required` is retained only for historical records.
+- Manager approval is required before a TA can claim, start, or close a request. TAs can only accept work for themselves; assignment to another TA is not supported.
 - Rejected requests cannot start or close successfully. Existing unapproved work that was already in progress in an older demo is also blocked from closing.
 - Approval never changes work status. Closing never changes approval or its audit record.
 - Every final request decision requires a reason and records the verified reviewer ID, name, email, and server timestamp. Final decisions cannot be overwritten.
@@ -85,7 +85,7 @@ Run `seed:demo` **once per database**. It creates four local accounts with indep
 | --- | --- |
 | `member@isanpower.test` | Lab Member |
 | `ta@isanpower.test` | TA (Kantee L.) |
-| `ta2@isanpower.test` | TA (Tanon L.), for assignment demos |
+| `ta2@isanpower.test` | TA (Tanon L.), for ownership/concurrent claim demos |
 | `manager@isanpower.test` | Lab Manager |
 
 The seed refuses to overwrite existing accounts, roles, passwords, or its credential file, and refuses production mode. If accounts already exist, use their original credentials and omit the seed command. There is no password reset UI yet.
@@ -122,18 +122,23 @@ Start PostgreSQL, then run `npm run dev` from `apps/api` and `npm run dev -- --h
 
 Repeat `npm ci` only when dependencies change. After pulling migrations, stop the API, run `npx prisma generate` and `npx prisma migrate deploy` from `apps/api`, then restart. Do not seed again if accounts exist.
 
+## Approval-first upgrade
+
+Stop the API before running `npx prisma generate` and `npx prisma migrate deploy` from `apps/api`, then restart it. Back up your database first. Migration `20260920000000_approval_first_workflow` returns **all open requests**, including previously approved/rejected and in-progress work, to pending/submitted and clears their assignees. They must be reviewed and accepted again. Closed and cancelled requests are unchanged.
+
+Old approval decisions remain in the database with `supersededAt`. API responses expose the current `decision` separately from `decisionHistory`; the request details show previous decisions. This migration does not delete requests or decision history. Run it once per database, not `prisma migrate reset`.
+
 ## Presentation walkthrough
 
 Use **separate browser profiles or different browsers** for Member, TA, and Manager. Tabs in the same browser profile and host share one login cookie; opening three tabs does not create three independent sessions. Alternatively, sign out and sign in sequentially in one browser.
 
-1. Member: create a request with **Requires Lab Manager approval** checked. The request starts as **Pending**, approval **Submitted**.
-2. TA: refresh the queue and **Claim**, or select another TA under **Assign to TA**. The work becomes **Assigned** while approval stays **Submitted**. **Start work** is disabled.
-3. Manager: open **Approvals**, select **Review**, choose **Approve**, write a reason, and save. The record now shows the reviewer and review time.
-4. Assigned TA: refresh and select **Start work**, then **Mark closed**.
-5. Member: verify the same request becomes **In progress**, then **Closed**, while approval remains **Approved** and its decision history is visible in details.
-6. Repeat with a second request and choose **Reject** in Manager. TA cannot start or successfully close it.
-7. Create a request without approval and demonstrate normal TA claim/start/close.
-8. Manager: open **Dashboard / Reports**, filter by creation date (UTC), refresh, and download the aggregate CSV.
+1. Member: create a request. It always starts as **Pending / Awaiting approval**; there is no approval checkbox.
+2. TA: the request is visible under **All requests**, but **Assign to myself** is disabled until approval.
+3. Manager: open **Approvals**, review the request, choose **Approve**, write a reason, and save.
+4. TA: open **Ready to accept**, choose **Assign to myself**, then **Start work** and **Mark closed**. Another TA cannot take or update that work.
+5. Member: verify progress and the approval decision/reviewer in the request details.
+6. Repeat with **Reject**. No TA can accept, start, or close that request.
+7. Manager: open **Dashboard / Reports**, filter by creation date (UTC), and export the aggregate CSV.
 
 Request lists refresh every four seconds while visible, on focus, and manually. Reports refresh on entry and through their refresh button. Failed submissions retain form input and never show saved success. No connected page falls back to mock records.
 
@@ -161,14 +166,14 @@ Base URL: `http://127.0.0.1:4000`. All endpoints except health, password login, 
 | GET | `/api/requests` | Member: own; TA/Manager: all |
 | POST | `/api/requests` | Member; requester comes from session |
 | GET | `/api/requests/:id` | Member: own; TA/Manager: all |
-| PATCH | `/api/requests/:id/ta-action` | TA; claim, assign, start, close |
+| PATCH | `/api/requests/:id/ta-action` | TA; self-claim, start, close |
 | PATCH | `/api/requests/:id/status` | TA compatibility route; start/close with identical gates |
 | PATCH | `/api/requests/:id/approval-status` | Manager; approve/reject with reason |
 | GET | `/api/requests/reports` | Manager; optional `from`/`to` ISO dates, UTC creation dates |
 
-POST request fields: `title`, `type`, optional `description`, `priority`, `location`, `neededBy`, `requiresApproval`. The Member form requires a description too. Sending `requesterEmail`, `role`, or initial statuses is rejected.
+POST request fields: `title`, `type`, optional `description`, `priority`, `location`, `neededBy`. The Member form requires a description too. The server always sets `requiresApproval=true` and `approvalStatus=submitted`. Sending `requiresApproval`, `requesterEmail`, `role`, or initial statuses is rejected.
 
-TA payloads are `{action: "claim"}`, `{action: "start"}`, `{action: "close"}`, or `{action: "assign", assigneeId, expectedUpdatedAt}`. Assignment accepts only an active TA's database ID and the latest request timestamp. It is allowed only before work starts. Only the assigned TA can start/close. The legacy `/status` accepts only `{status: "in_progress"}` or `{status: "closed"}` with the same checks.
+TA payloads are `{action: "claim"}`, `{action: "start"}`, or `{action: "close"}`. All require approved requests. Claim assigns only the acting TA; only that TA can start/close in sequence. The removed `assign` action is rejected. The legacy `/status` endpoint applies the same checks.
 
 Manager payload: `{approvalStatus: "approved" | "rejected", reason}`. The reason is trimmed and must contain 1–2000 characters. The server supplies all reviewer metadata. Review applies to active, required requests in `submitted` or `under_review`; a final decision cannot be replaced.
 
@@ -202,7 +207,7 @@ npm test
 
 Tests apply migrations and delete requests, decisions, users, and sessions between cases. Never use your development/presentation database. Close the test terminal afterward to avoid reusing its database override.
 
-Coverage includes password login/logout/expiry, current database roles, unauthenticated access, cross-role actions, spoofed identity fields, Member ownership, assignment targets, concurrent claims/decisions, approval gates including the legacy status endpoint, rejection, immutable audit data, and Manager-only reports. Frontend contract tests compare UI, API, and Prisma status definitions. See [local demo notes](docs/development/LOCAL-DEMO.md) for manual checks.
+Coverage includes password login/logout/expiry, current database roles, unauthenticated access, cross-role actions, spoofed identity fields, Member ownership, rejection of third-party assignment, concurrent claims/decisions, approval gates including the legacy status endpoint, rejection, immutable audit data, and Manager-only reports. Frontend contract tests compare UI, API, and Prisma status definitions. See [local demo notes](docs/development/LOCAL-DEMO.md) for manual checks.
 
 ## Troubleshooting
 

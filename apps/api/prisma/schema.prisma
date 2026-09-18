@@ -45,8 +45,8 @@ model LabRequest {
   description      String          @default("")
   type             RequestType
   status           RequestStatus   @default(pending)
-  approvalStatus   ApprovalStatus  @default(not_required)
-  requiresApproval Boolean         @default(false)
+  approvalStatus   ApprovalStatus  @default(submitted)
+  requiresApproval Boolean         @default(true)
   priority         RequestPriority @default(medium)
   location         String          @default("")
   requesterEmail   String
@@ -54,7 +54,7 @@ model LabRequest {
   neededBy         DateTime?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
-  decision         ApprovalDecision?
+  decisions        ApprovalDecision[]
 
   @@index([requesterEmail])
   @@index([assigneeEmail, status])
@@ -111,7 +111,7 @@ model Session {
 
 model ApprovalDecision {
   id            String @id @default(uuid())
-  requestId     String @unique
+  requestId     String
   request       LabRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   outcome       ApprovalStatus
   reason        String
@@ -120,5 +120,7 @@ model ApprovalDecision {
   reviewerName  String
   reviewerEmail String
   reviewedAt    DateTime @default(now())
+  supersededAt  DateTime?
+  @@index([requestId])
   @@map("approval_decisions")
 }

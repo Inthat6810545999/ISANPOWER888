@@ -35,7 +35,7 @@ Open [Sign in](http://127.0.0.1:3000/login). Credentials are generated once by `
 - `RequestTable.tsx` provides search, filters, pagination, details, and the approval decision record.
 - `demo-identity.ts` supplies presentation labels for legacy email-based records only. It never grants access. Mock records are unused reference fixtures.
 
-TA can claim/assign before approval. Start/close are shown only for the assigned TA and blocked until required approval is granted. The API repeats these checks atomically. Manager can review and report, with no work actions. A final review needs a reason; reviewer identity/time are server-generated and immutable.
+Every new request needs Manager approval before TA self-claim. There is no assignment to another TA. Start/close are shown only for the assigned TA and require approval. The API repeats these checks atomically. Manager can review and report, with no work actions. A final review needs a reason; reviewer identity/time are server-generated and immutable.
 
 Sessions support Google accounts and manually seeded local demo accounts. Google requires OAuth credentials; new Google accounts remain pending. Membership approval screens, password recovery, MFA, and distributed throttling are not implemented. See the root README for the complete limitations.
 
