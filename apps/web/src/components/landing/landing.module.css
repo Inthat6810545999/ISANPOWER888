@@ -6,7 +6,7 @@
 .skip:focus { top: 12px; }
 .header { height: 82px; padding: 0 5%; display: flex; align-items: center; justify-content: space-between; gap: 24px; position: sticky; top: 0; z-index: 10; background: #f6f3eaed; backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
 .brand { display: inline-flex; align-items: center; gap: 9px; font-weight: 650; font-size: 16px; letter-spacing: -.5px; white-space: nowrap; }
-.brandMark { font-size: 30px; margin-right: 5px; }
+.brandMark { width: 30px; height: 30px; margin-right: 5px; flex-shrink: 0; background-color: currentColor; -webkit-mask: url('/images/brand/isp-logo.png') center / contain no-repeat; mask: url('/images/brand/isp-logo.png') center / contain no-repeat; }
 .brandLight { font-weight: 400; color: var(--muted); }
 .header nav { display: flex; gap: 32px; font-size: 12px; color: var(--muted); }
 .header nav a:hover, .textLink:hover { color: #a35b2e; }
@@ -90,7 +90,7 @@
 @media (max-width: 420px) {
   .header { gap: 12px; }
   .header .brand { font-size: 12px; gap: 4px; }
-  .brandMark { font-size: 23px; margin-right: 2px; }
+  .brandMark { width: 23px; height: 23px; margin-right: 2px; }
   .navLogin { gap: 12px; font-size: 12px; }
   .contactHeading { gap: 12px; }
   .contactStar { font-size: 35px; }

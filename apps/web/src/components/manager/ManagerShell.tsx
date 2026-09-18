@@ -14,7 +14,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
   return <div className={`${styles.workspace} ${styles.managerWorkspace}`}>
     <a className={styles.skipLink} href="#manager-content">Skip to content</a>
     <aside className={styles.sidebar}>
-      <Link className={styles.brand} href="/manager"><span className={styles.logo}>IP</span><span><strong>ISANPOWER</strong><small>LAB / MANAGER</small></span></Link>
+      <Link className={styles.brand} href="/manager"><span className={styles.logo} aria-hidden="true" /><span><strong>ISANPOWER</strong><small>LAB / MANAGER</small></span></Link>
       <div className={styles.labCard}><span className={styles.labMark}>LM</span><div><strong>Lab Manager</strong><small>Review and oversight</small></div></div>
       <p className={styles.navLabel}>MANAGEMENT</p>
       <nav className={styles.nav} aria-label="Lab Manager navigation">

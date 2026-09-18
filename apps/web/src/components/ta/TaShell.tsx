@@ -15,7 +15,7 @@ export function TaShell({ children }: { children: ReactNode }) {
   return <div className={`${styles.workspace} ${styles.taWorkspace}`}>
     <a className={styles.skipLink} href="#ta-content">Skip to content</a>
     <aside className={styles.sidebar}>
-      <Link className={styles.brand} href="/ta"><span className={styles.logo}>IP</span>
+      <Link className={styles.brand} href="/ta"><span className={styles.logo} aria-hidden="true" />
         <span><strong>ISANPOWER</strong><small>LAB / TA CONSOLE</small></span>
       </Link>
       <div className={styles.labCard}><span className={styles.labMark}><Icon name="shield" /></span>

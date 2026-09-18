@@ -14,7 +14,7 @@ export default function Home() {
     <div className={styles.landing} id="top">
       <a className={styles.skip} href="#overview">Skip to overview</a>
       <header className={styles.header}>
-        <a className={styles.brand} href="#top" aria-label="ISANPOWER888 LAB home"><span className={styles.brandMark} aria-hidden="true">✳</span> ISANPOWER888<span className={styles.brandLight}> / LAB</span></a>
+        <a className={styles.brand} href="#top" aria-label="ISANPOWER888 LAB home"><span className={styles.brandMark} aria-hidden="true" /> ISANPOWER888<span className={styles.brandLight}> / LAB</span></a>
         <nav aria-label="Main navigation"><a href="#overview">Overview</a><a href="#how-it-works">How it works</a><a href="#contact">Contact</a></nav>
         <Link className={styles.navLogin} href="/login">Log in <span aria-hidden="true">↗</span></Link>
       </header>

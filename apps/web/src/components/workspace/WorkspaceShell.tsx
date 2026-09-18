@@ -20,7 +20,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   return <div className={styles.workspace}>
     <a className={styles.skipLink} href="#workspace-content">Skip to content</a>
     <aside className={styles.sidebar}>
-      <Link className={styles.brand} href="/workspace"><span className={styles.logo}>IP</span>
+      <Link className={styles.brand} href="/workspace"><span className={styles.logo} aria-hidden="true" />
         <span><strong>ISANPOWER</strong><small>LAB / SHARED WORKSPACE</small></span>
       </Link>
       <div className={styles.labCard}><span className={styles.labMark}>IL</span>
