@@ -80,14 +80,14 @@ export function RequestsProvider({ children, user, scope = "member" }: { childre
     setNotice("");
     const result = await submitRequest(draft);
     if (!result.ok) throw new Error(result.error);
-    saved(result.data, "Request saved. Your TA can now see it in the queue.");
+    saved(result.data, "Request submitted for Lab Manager approval.");
   }
 
   async function taAction(id: string, payload: TaAction) {
     setNotice("");
     const result = await changeTaRequest(id, payload);
     if (!result.ok) { void refresh(); throw new Error(result.error); }
-    saved(result.data, payload.action === "claim" ? "Request assigned to you." : payload.action === "start" ? "Work started. The member can see the updated status." : payload.action === "assign" ? "Assignment saved." : "Request closed. The member can see the updated status.");
+    saved(result.data, payload.action === "claim" ? "Request assigned to you." : payload.action === "start" ? "Work started. The member can see the updated status." : "Request closed. The member can see the updated status.");
   }
 
   async function review(id: string, decision: "approved" | "rejected", reason: string) {

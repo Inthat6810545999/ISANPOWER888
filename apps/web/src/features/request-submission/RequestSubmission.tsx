@@ -39,8 +39,7 @@ export function RequestSubmission() {
     setError("");
     try {
       await addRequest({ title, category, priority, description: description.trim(),
-        location: String(data.get("location") ?? "").trim(), neededBy: String(data.get("neededBy") ?? ""),
-        requiresApproval: data.get("requiresApproval") === "on" });
+        location: String(data.get("location") ?? "").trim(), neededBy: String(data.get("neededBy") ?? "") });
       router.push("/workspace/my-requests");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save. Please retry.");
@@ -64,7 +63,7 @@ export function RequestSubmission() {
           <label className={styles.field}><span>Location <small>Optional</small></span><input name="location" maxLength={200} placeholder="Lab, room, or workstation" /></label>
           <label className={styles.field}><span>Needed by <small>Optional</small></span><input name="neededBy" type="date" /></label>
         </div>
-        <label className={styles.approvalBox}><input name="requiresApproval" type="checkbox" /><span><strong>Requires Lab Manager approval</strong><small>Choose this for spending, sensitive access, or work requiring authorisation.</small></span><Icon name="shield" /></label>
+        <div className={styles.approvalBox}><Icon name="shield" /><span><strong>Every request needs Lab Manager approval</strong><small>A TA can accept and start your request only after it is approved.</small></span></div>
         {error && <p role="alert" className={styles.error}>{error}</p>}
         <div className={styles.formFooter}><span>Submit to save to your lab workspace</span><div><button className={styles.secondaryButton} type="button" disabled={submitted} onClick={close}>Cancel</button><button className={styles.primaryButton} type="submit" disabled={submitted}>{submitted ? "Submitting…" : "Submit request"}<Icon name="arrow" /></button></div></div>
       </form>

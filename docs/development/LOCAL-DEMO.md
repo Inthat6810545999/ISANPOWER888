@@ -33,7 +33,7 @@ Use separate browser profiles or different browsers for simultaneous Member, TA,
 | --- | --- |
 | `member@isanpower.test` | My Requests / New Request |
 | `ta@isanpower.test` | TA Queue |
-| `ta2@isanpower.test` | TA Queue; second assignment target |
+| `ta2@isanpower.test` | TA Queue; second TA for ownership checks |
 | `manager@isanpower.test` | Approvals / Dashboard and Reports |
 
 All accounts have independently generated passwords, not a common default password. Roles are read from the database through a verified session. The login form has no role selector.
@@ -41,11 +41,11 @@ All accounts have independently generated passwords, not a common default passwo
 ## Manual verification checklist
 
 1. Member submits a new request requiring approval; verify saved success, Pending work, and Awaiting approval.
-2. TA sees the same ID, claims it or assigns another TA. Work becomes Assigned; starting is disabled with an approval message.
-3. Manager sees request details and reviews it with a required reason. Verify Approved, reviewer identity, and timestamp; work must remain Assigned.
-4. Assigned TA starts and closes it. Member sees the updates and the unchanged approval decision.
+2. TA sees the ID in All requests but cannot claim, start or close it while approval is pending.
+3. Manager sees request details and reviews it with a required reason. Verify Approved, reviewer identity, and timestamp; work must remain Pending and unassigned.
+4. TA selects Assign to myself in Ready to accept, then starts and closes it. Member sees the updates and the unchanged approval decision.
 5. Repeat with Reject. TA must not start or close successfully; rejection reason stays visible.
-6. Submit a request without approval. TA can claim, start, and close normally.
+6. Confirm there is no approval checkbox or Assign to TA selector. Another TA cannot claim, start or close work already owned by someone else.
 7. Manager opens Dashboard / Reports, refreshes, filters creation dates in UTC, and exports the aggregate CSV.
 8. Open another role's URL directly; it must redirect to the signed-in role's workspace. Signed-out pages must redirect to login.
 9. Sign out, then use browser Back/refresh; protected data must require a session. Previously rendered browser content is not proof of active access.
@@ -61,7 +61,7 @@ Local demo accounts now use password authentication and server/API role enforcem
 
 - API integration suite: 19 cases passed against an isolated PostgreSQL 16 test database, including denial matrices and parameterized approval-gate checks.
 - Frontend status contracts: 4 passed. API/web lint, typecheck, and production builds passed.
-- Browser: Member password login and submission; Member-to-Manager URL denial; TA claim with disabled start while awaiting approval; Manager approve with reason; Manager-to-TA URL denial; assigned TA start/close; Member details retained the approval, reason, reviewer, and time. Manager dashboard rendered database aggregates.
+- Historical browser check before approval-first (the manual checklist above supersedes this flow): Member password login and submission; Member-to-Manager URL denial; TA claim with disabled start while awaiting approval; Manager approve with reason; Manager-to-TA URL denial; assigned TA start/close; Member details retained the approval, reason, reviewer, and time. Manager dashboard rendered database aggregates.
 - API tests verified rejection, report date boundaries, session expiry/logout, forbidden API actions, and concurrent decisions. These checks do not constitute a production security audit.
 - The additive migration was applied to `isanpower_local`. Existing requests were preserved. One clearly labelled `Role workflow verification — local demo` request was created through the UI and left closed as a presentation example.
 

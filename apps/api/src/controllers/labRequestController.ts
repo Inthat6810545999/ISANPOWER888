@@ -5,12 +5,17 @@ import { APPROVAL_STATUSES, REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES 
 import { HttpError } from "../middleware/errorHandler.js";
 import { actor } from "../auth/session.js";
 
-const includeDecision = { decision: true } as const;
+const includeDecision = { decisions: { orderBy: { reviewedAt: "desc" as const } } } as const;
+function withDecision<T extends { decisions: { supersededAt: Date | null }[] }>(record: T) {
+  const { decisions, ...request } = record;
+  return { ...request, decision: decisions.find((d) => !d.supersededAt) ?? null,
+    decisionHistory: decisions.filter((d) => d.supersededAt) };
+}
 const createSchema = z.object({
   title: z.string().trim().min(1).max(200), description: z.string().max(5000).optional(),
   type: z.enum(REQUEST_TYPES), neededBy: z.coerce.date().optional(),
   priority: z.enum(REQUEST_PRIORITIES).default("medium"),
-  location: z.string().trim().max(200).default(""), requiresApproval: z.boolean().default(false),
+  location: z.string().trim().max(200).default(""),
 }).strict();
 const listQuerySchema = z.object({
   requesterEmail: z.email().transform((v) => v.toLowerCase()).optional(),
@@ -24,10 +29,10 @@ export async function listLabRequests(req: Request, res: Response): Promise<void
   if (user.role === "member" && filter.requesterEmail && filter.requesterEmail !== user.email) {
     throw new HttpError(403, "Members can only view their own requests.");
   }
-  res.json({ data: await prisma.labRequest.findMany({
+  res.json({ data: (await prisma.labRequest.findMany({
     where: { ...filter, ...(user.role === "member" ? { requesterEmail: user.email } : {}) },
     include: includeDecision, orderBy: { createdAt: "desc" },
-  }) });
+  })).map(withDecision) });
 }
 
 export async function getLabRequest(req: Request<{ id: string }>, res: Response): Promise<void> {
@@ -35,16 +40,16 @@ export async function getLabRequest(req: Request<{ id: string }>, res: Response)
   if (!found || (actor(res).role === "member" && found.requesterEmail !== actor(res).email)) {
     throw new HttpError(404, "Lab request not found");
   }
-  res.json({ data: found });
+  res.json({ data: withDecision(found) });
 }
 
 export async function createLabRequest(req: Request, res: Response): Promise<void> {
   const payload = createSchema.parse(req.body);
   const created = await prisma.labRequest.create({ data: {
     ...payload, requesterEmail: actor(res).email, status: "pending",
-    approvalStatus: payload.requiresApproval ? "submitted" : "not_required",
+    requiresApproval: true, approvalStatus: "submitted",
   }, include: includeDecision });
-  res.status(201).json({ data: created });
+  res.status(201).json({ data: withDecision(created) });
 }
 
 const reviewSchema = z.object({ approvalStatus: z.enum(["approved", "rejected"]), reason: z.string().trim().min(1).max(2000) }).strict();
@@ -67,47 +72,31 @@ export async function updateLabRequestApprovalStatus(req: Request<{ id: string }
     } });
     return tx.labRequest.findUniqueOrThrow({ where: { id: req.params.id }, include: includeDecision });
   });
-  res.json({ data: updated });
+  res.json({ data: withDecision(updated) });
 }
 
 const taSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("claim") }).strict(),
   z.object({ action: z.literal("start") }).strict(),
   z.object({ action: z.literal("close") }).strict(),
-  z.object({ action: z.literal("assign"), assigneeId: z.uuid(), expectedUpdatedAt: z.iso.datetime() }).strict(),
 ]);
 type TaAction = z.infer<typeof taSchema>;
 
 async function executeTa(id: string, payload: TaAction, res: Response) {
   const user = actor(res);
   return prisma.$transaction(async (tx) => {
-    let assigneeEmail = user.email;
-    if (payload.action === "assign") {
-      const target = await tx.user.findFirst({ where: { id: payload.assigneeId, role: "ta", active: true, membershipStatus: "APPROVED" } });
-      if (!target) throw new HttpError(400, "Choose an active Teaching Assistant.");
-      assigneeEmail = target.email;
-    }
-    const result = payload.action === "assign"
-      ? await tx.labRequest.updateMany({
-        where: { id, status: { in: ["pending", "assigned"] }, updatedAt: new Date(payload.expectedUpdatedAt) },
-        data: { status: "assigned", assigneeEmail },
-      })
-      : await tx.labRequest.updateMany({
-        where: {
-          id,
-          status: payload.action === "claim" ? "pending" : payload.action === "start" ? "assigned" : "in_progress",
-          assigneeEmail: payload.action === "claim" ? null : user.email,
-          ...(payload.action === "claim" ? {} : { OR: [
-            { requiresApproval: false, approvalStatus: "not_required" as const },
-            { requiresApproval: true, approvalStatus: "approved" as const },
-          ] }),
-        },
-        data: { status: payload.action === "claim" ? "assigned" : payload.action === "start" ? "in_progress" : "closed", assigneeEmail },
-      });
+    const result = await tx.labRequest.updateMany({
+      where: {
+        id, requiresApproval: true, approvalStatus: "approved",
+        status: payload.action === "claim" ? "pending" : payload.action === "start" ? "assigned" : "in_progress",
+        assigneeEmail: payload.action === "claim" ? null : user.email,
+      },
+      data: { status: payload.action === "claim" ? "assigned" : payload.action === "start" ? "in_progress" : "closed", assigneeEmail: user.email },
+    });
     const current = await tx.labRequest.findUnique({ where: { id }, include: includeDecision });
     if (!current) throw new HttpError(404, "Lab request not found");
     if (result.count !== 1) throw new HttpError(409, "Action blocked: check approval, assignment, and current work status, then refresh.");
-    return current;
+    return withDecision(current);
   });
 }
 

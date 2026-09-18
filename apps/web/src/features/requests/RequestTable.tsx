@@ -117,6 +117,14 @@ export function RequestTable({ title, requests, renderRowActions }: {
           <p>Reviewed by {selected.decision.reviewerName} ({selected.decision.reviewerEmail})</p>
           <p>{new Date(selected.decision.reviewedAt).toLocaleString()}</p>
         </section>}
+        {!!selected.decisionHistory?.length && <section className={styles.decisionRecord}>
+          <h3>Previous decisions</h3>
+          <p>These decisions were superseded when open requests were returned for approval. They do not authorize current work.</p>
+          {selected.decisionHistory.map((decision) => <div key={decision.id}>
+            <p>{APPROVAL_LABELS[decision.outcome]} — {decision.reason}</p>
+            <p>Reviewed by {decision.reviewerName} ({decision.reviewerEmail}) · {new Date(decision.reviewedAt).toLocaleString()}</p>
+          </div>)}
+        </section>}
         <p className={styles.helper}>Saved to your lab workspace · Status updates automatically.</p>
       </div>
     </Dialog>}

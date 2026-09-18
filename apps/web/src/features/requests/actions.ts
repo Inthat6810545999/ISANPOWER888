@@ -1,6 +1,6 @@
 "use server";
 
-import { createLabRequest, listLabRequests, performLabRequestTaAction, reviewLabRequest, listAssignees, getReport, type TaAction, type LabRequest } from "@/lib/api";
+import { createLabRequest, listLabRequests, performLabRequestTaAction, reviewLabRequest, getReport, type TaAction, type LabRequest } from "@/lib/api";
 import { personFromEmail } from "./demo-identity";
 import { CATEGORIES, PRIORITIES, type RequestDraft, type WorkspaceRequest } from "./types";
 
@@ -16,7 +16,7 @@ function toWorkspace(request: LabRequest): WorkspaceRequest {
     status: request.status, approvalStatus: request.approvalStatus,
     requester: personFromEmail(request.requesterEmail),
     assignee: request.assigneeEmail ? personFromEmail(request.assigneeEmail) : null,
-    createdAt: request.createdAt, updatedAt: request.updatedAt, decision: request.decision };
+    createdAt: request.createdAt, updatedAt: request.updatedAt, decision: request.decision, decisionHistory: request.decisionHistory };
 }
 
 function failure(error: unknown): { ok: false; error: string } {
@@ -40,7 +40,7 @@ export async function submitRequest(draft: RequestDraft): Promise<Result<Workspa
         typeof draft.description !== "string" || !draft.description.trim() || draft.description.length > 4000 ||
         !Object.hasOwn(CATEGORIES, draft.category) || !PRIORITIES.includes(draft.priority) ||
         typeof draft.location !== "string" || draft.location.length > 200 ||
-        typeof draft.requiresApproval !== "boolean" || typeof draft.neededBy !== "string") {
+        typeof draft.neededBy !== "string") {
       throw new Error("Please check the request fields and try again.");
     }
     if (draft.neededBy && (!/^\d{4}-\d{2}-\d{2}$/.test(draft.neededBy) ||
@@ -50,7 +50,7 @@ export async function submitRequest(draft: RequestDraft): Promise<Result<Workspa
     await requireActionRole("member");
     const saved = await createLabRequest({ title: draft.title.trim(), description: draft.description.trim(),
       type: draft.category, priority: draft.priority, location: draft.location.trim(),
-      requiresApproval: draft.requiresApproval, neededBy: draft.neededBy ? `${draft.neededBy}T00:00:00.000Z` : undefined,
+      neededBy: draft.neededBy ? `${draft.neededBy}T00:00:00.000Z` : undefined,
  });
     return { ok: true, data: toWorkspace(saved) };
   } catch (error) { return failure(error); }
@@ -68,11 +68,6 @@ export async function reviewRequest(id: string, decision: "approved" | "rejected
     await requireActionRole("lab_manager");
     return { ok: true, data: toWorkspace(await reviewLabRequest(id, decision, reason)) };
   } catch (error) { return failure(error); }
-}
-
-export async function loadAssignees() {
-  await requireActionRole("ta");
-  return listAssignees();
 }
 
 export async function loadReport(from = "", to = "") {

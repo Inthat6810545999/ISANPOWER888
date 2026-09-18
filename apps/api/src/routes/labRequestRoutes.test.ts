@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -20,8 +21,8 @@ async function account(name: string, role: UserRole): Promise<Account> {
   return { ...user, token };
 }
 const auth = (user: Account) => ({ Authorization: `Bearer ${user.token}` });
-async function create(requiresApproval = false, user = member) {
-  return (await request(app).post("/api/requests").set(auth(user)).send({ ...validRequest, requiresApproval }).expect(201)).body.data;
+async function create(user = member) {
+  return (await request(app).post("/api/requests").set(auth(user)).send(validRequest).expect(201)).body.data;
 }
 const action = (id: string, user: Account, value: string) => request(app).patch(`/api/requests/${id}/ta-action`).set(auth(user)).send({ action: value });
 const review = (id: string, user: Account, approvalStatus = "approved", reason = "Reviewed lab resources and access.") =>
@@ -69,7 +70,7 @@ describe("verified sessions", () => {
 describe("role boundaries and ownership", () => {
   it("scopes member lists and details to the verified requester", async () => {
     const own = await create();
-    const other = await create(false, otherMember);
+    const other = await create(otherMember);
     const list = await request(app).get("/api/requests").set(auth(member)).expect(200);
     expect(list.body.data.map((r: { id: string }) => r.id)).toEqual([own.id]);
     await request(app).get(`/api/requests/${other.id}`).set(auth(member)).expect(404);
@@ -81,14 +82,14 @@ describe("role boundaries and ownership", () => {
     }
   });
   it("TA and Member cannot approve or reject, even with spoofed manager headers", async () => {
-    const r = await create(true);
+    const r = await create();
     for (const user of [member, ta]) for (const decision of ["approved", "rejected"]) {
       await review(r.id, user, decision).set("X-Role", "lab_manager").set("X-Email", manager.email).expect(403);
     }
     expect((await prisma.labRequest.findUniqueOrThrow({ where: { id: r.id } })).approvalStatus).toBe("submitted");
   });
   it("Manager has no TA inheritance and Member cannot mutate work", async () => {
-    const r = await create(true);
+    const r = await create();
     for (const user of [member, manager]) {
       for (const value of ["claim", "assign", "start", "close"]) await action(r.id, user, value).expect(403);
       await request(app).patch(`/api/requests/${r.id}/status`).set(auth(user)).send({ status: "closed" }).expect(403);
@@ -96,114 +97,130 @@ describe("role boundaries and ownership", () => {
     }
   });
   it("rejects client-controlled identity, reviewer, and initial status fields", async () => {
-    for (const invalid of [{ requesterEmail: otherMember.email }, { role: "lab_manager" }, { status: "closed" }, { approvalStatus: "approved" }, { priority: "urgent" }, { requiresApproval: "true" }, { location: "x".repeat(201) }]) {
+    for (const invalid of [{ requesterEmail: otherMember.email }, { role: "lab_manager" }, { status: "closed" }, { approvalStatus: "approved" }, { priority: "urgent" }, { requiresApproval: "true" }, { requiresApproval: false }, { requiresApproval: true }, { location: "x".repeat(201) }]) {
       await request(app).post("/api/requests").set(auth(member)).send({ ...validRequest, ...invalid }).expect(400);
     }
-    const r = await create(true);
+    const r = await create();
     await request(app).patch(`/api/requests/${r.id}/ta-action`).set(auth(ta)).send({ action: "claim", assigneeEmail: otherTa.email }).expect(400);
     await request(app).patch(`/api/requests/${r.id}/approval-status`).set(auth(manager)).send({ approvalStatus: "approved", reason: "Reason", reviewerEmail: ta.email }).expect(400);
   });
 });
 
-describe("independent approval and work workflow", () => {
-  it("persists form metadata and allows normal TA work without approval", async () => {
+describe("approval-first, self-assignment workflow", () => {
+  it("requires approval for every new request and completes the owner-only sequence", async () => {
     const fields = { ...validRequest, priority: "high", location: "Lab B2", neededBy: "2026-10-15", description: "Prepare equipment" };
     const r = (await request(app).post("/api/requests").set(auth(member)).send(fields).expect(201)).body.data;
-    expect(r).toMatchObject({ ...fields, requesterEmail: member.email, neededBy: "2026-10-15T00:00:00.000Z", status: "pending", approvalStatus: "not_required" });
-    await review(r.id, manager).expect(409);
-    for (const value of ["claim", "start", "close"]) await action(r.id, ta, value).expect(200);
-    const saved = (await request(app).get(`/api/requests/${r.id}`).set(auth(member)).expect(200)).body.data;
-    expect(saved).toMatchObject({ status: "closed", approvalStatus: "not_required", decision: null, assigneeEmail: ta.email });
-  });
-  it("allows claiming while waiting; approval unlocks start/close and records immutable audit data", async () => {
-    const r = await create(true);
-    await action(r.id, ta, "claim").expect(200);
-    await action(r.id, ta, "start").expect(409);
-    await action(r.id, ta, "close").expect(409);
-    const result = await review(r.id, manager, "approved", "  Budget and safety confirmed.  ").expect(200);
-    expect(result.body.data).toMatchObject({ status: "assigned", approvalStatus: "approved", decision: {
-      outcome: "approved", reason: "Budget and safety confirmed.", reviewerId: manager.id, reviewerName: manager.name, reviewerEmail: manager.email,
+    expect(r).toMatchObject({ ...fields, requesterEmail: member.email, neededBy: "2026-10-15T00:00:00.000Z", status: "pending", approvalStatus: "submitted", requiresApproval: true, assigneeEmail: null });
+    for (const value of ["claim", "start", "close"]) await action(r.id, ta, value).expect(409);
+    const approved = await review(r.id, manager, "approved", "  Budget and safety confirmed.  ").expect(200);
+    expect(approved.body.data).toMatchObject({ status: "pending", assigneeEmail: null, decision: {
+      reason: "Budget and safety confirmed.", reviewerId: manager.id, reviewerName: manager.name, reviewerEmail: manager.email,
     } });
-    expect(Number.isFinite(Date.parse(result.body.data.decision.reviewedAt))).toBe(true);
-    await review(r.id, manager, "rejected").expect(409);
-    await action(r.id, ta, "start").expect(200);
-    await action(r.id, ta, "close").expect(200);
-    const saved = (await request(app).get(`/api/requests/${r.id}`).set(auth(member)).expect(200)).body.data;
-    expect(saved.approvalStatus).toBe("approved");
-    expect(saved.decision).toEqual(result.body.data.decision);
-  });
-  it.each(["submitted", "under_review", "rejected", "cancelled"] as const)("blocks start and success-close for %s including the legacy endpoint", async (approvalStatus) => {
-    const r = await create(true);
+    await action(r.id, ta, "start").expect(409);
     await action(r.id, ta, "claim").expect(200);
+    await action(r.id, otherTa, "claim").expect(409);
+    await action(r.id, otherTa, "start").expect(409);
+    await action(r.id, ta, "close").expect(409);
+    await action(r.id, ta, "start").expect(200);
+    await action(r.id, otherTa, "close").expect(409);
+    await action(r.id, ta, "close").expect(200);
+    await action(r.id, ta, "start").expect(409);
+    await review(r.id, manager, "rejected").expect(409);
+    const saved = (await request(app).get(`/api/requests/${r.id}`).set(auth(member)).expect(200)).body.data;
+    expect(saved).toMatchObject({ status: "closed", approvalStatus: "approved", assigneeEmail: ta.email });
+    expect(saved.decision).toEqual(approved.body.data.decision);
+  });
+  it.each(["not_required", "submitted", "under_review", "rejected", "cancelled"] as const)("blocks every TA operation for %s, including legacy status routes", async (approvalStatus) => {
+    const r = await create();
     await prisma.labRequest.update({ where: { id: r.id }, data: { approvalStatus } });
+    await action(r.id, ta, "claim").expect(409);
+    await prisma.labRequest.update({ where: { id: r.id }, data: { status: "assigned", assigneeEmail: ta.email } });
     await action(r.id, ta, "start").expect(409);
     await request(app).patch(`/api/requests/${r.id}/status`).set(auth(ta)).send({ status: "in_progress" }).expect(409);
-    // Existing records from the previous demo may already be in progress before approval.
     await prisma.labRequest.update({ where: { id: r.id }, data: { status: "in_progress" } });
     await action(r.id, ta, "close").expect(409);
     await request(app).patch(`/api/requests/${r.id}/status`).set(auth(ta)).send({ status: "closed" }).expect(409);
-    expect((await prisma.labRequest.findUniqueOrThrow({ where: { id: r.id } })).approvalStatus).toBe(approvalStatus);
   });
-  it("records rejection and requires a reason for both decisions", async () => {
-    const r = await create(true);
+  it("records rejection with a required reason and blocks claiming rejected requests", async () => {
+    const r = await create();
     for (const value of ["approved", "rejected"]) await review(r.id, manager, value, "  ").expect(400);
     const rejected = await review(r.id, manager, "rejected", "No supervised access available.").expect(200);
     expect(rejected.body.data.decision.outcome).toBe("rejected");
-    await action(r.id, ta, "claim").expect(200);
-    await action(r.id, ta, "start").expect(409);
+    await action(r.id, ta, "claim").expect(409);
     await review(r.id, manager).expect(409);
   });
-  it("assigns waiting work only to active TAs and respects current ownership", async () => {
-    const r = await create(true);
-    const assign = (id: string, expectedUpdatedAt = r.updatedAt) => request(app).patch(`/api/requests/${r.id}/ta-action`).set(auth(ta)).send({ action: "assign", assigneeId: id, expectedUpdatedAt });
-    await assign(manager.id).expect(400);
-    await assign(member.id).expect(400);
-    const roster = (await request(app).get("/api/auth/assignees").set(auth(ta)).expect(200)).body.data;
-    expect(roster.map((u: { role: string }) => u.role)).toEqual(["ta", "ta"]);
-    expect(roster[0].passwordHash).toBeUndefined();
-    const assigned = await assign(otherTa.id).expect(200);
-    expect(assigned.body.data).toMatchObject({ status: "assigned", approvalStatus: "submitted", assigneeEmail: otherTa.email });
-    await assign(ta.id).expect(409);
-    await action(r.id, otherTa, "start").expect(409);
+  it("rejects assignment to anyone, including self, through the removed assign action", async () => {
+    const r = await create();
     await review(r.id, manager).expect(200);
-    await action(r.id, ta, "start").expect(409);
-    await action(r.id, otherTa, "start").expect(200);
-    await assign(ta.id, assigned.body.data.updatedAt).expect(409);
-    await action(r.id, ta, "close").expect(409);
-    await action(r.id, otherTa, "close").expect(200);
+    for (const assigneeId of [ta.id, otherTa.id, manager.id, member.id]) {
+      await request(app).patch(`/api/requests/${r.id}/ta-action`).set(auth(ta))
+        .send({ action: "assign", assigneeId, expectedUpdatedAt: r.updatedAt }).expect(400);
+    }
+    expect((await prisma.labRequest.findUniqueOrThrow({ where: { id: r.id } })).assigneeEmail).toBeNull();
   });
-  it("prevents conflicting claims and conflicting final decisions", async () => {
-    const r = await create(true);
+  it("allows only one concurrent claim or final review", async () => {
+    const r = await create();
+    await review(r.id, manager).expect(200);
     const claims = await Promise.all([action(r.id, ta, "claim"), action(r.id, otherTa, "claim")]);
     expect(claims.map((v) => v.status).sort()).toEqual([200, 409]);
-    const decisions = await Promise.all([review(r.id, manager, "approved"), review(r.id, manager, "rejected")]);
+    const pending = await create();
+    const decisions = await Promise.all([review(pending.id, manager, "approved"), review(pending.id, manager, "rejected")]);
     expect(decisions.map((v) => v.status).sort()).toEqual([200, 409]);
-    expect(await prisma.approvalDecision.count({ where: { requestId: r.id } })).toBe(1);
+    expect(await prisma.approvalDecision.count({ where: { requestId: pending.id } })).toBe(1);
+  });
+  it("enforces owner and sequence through the legacy endpoint too", async () => {
+    const r = await create();
+    await review(r.id, manager).expect(200);
+    await action(r.id, ta, "claim").expect(200);
+    await request(app).patch(`/api/requests/${r.id}/status`).set(auth(otherTa)).send({ status: "in_progress" }).expect(409);
+    await request(app).patch(`/api/requests/${r.id}/status`).set(auth(ta)).send({ status: "in_progress" }).expect(200);
+    await request(app).patch(`/api/requests/${r.id}/status`).set(auth(otherTa)).send({ status: "closed" }).expect(409);
+    await request(app).patch(`/api/requests/${r.id}/status`).set(auth(ta)).send({ status: "closed" }).expect(200);
   });
   it("does not allow raw status overrides or mixed approval/work updates", async () => {
-    const r = await create(true);
+    const r = await create();
     for (const status of ["approved", "assigned", "cancelled"]) await request(app).patch(`/api/requests/${r.id}/status`).set(auth(ta)).send({ status }).expect(400);
     await request(app).patch(`/api/requests/${r.id}/status`).set(auth(ta)).send({ status: "closed", approvalStatus: "approved" }).expect(400);
     await review(r.id, manager, "not_required").expect(400);
-    await review(r.id, manager, "closed").expect(400);
-    await action(r.id, ta, "close").expect(409);
   });
-  it("supports independent filters and handles missing records", async () => {
-    await create(); await create(true);
-    const filtered = await request(app).get("/api/requests?status=pending&approvalStatus=submitted").set(auth(ta)).expect(200);
-    expect(filtered.body.data).toHaveLength(1);
+  it("supports approval filters and missing records", async () => {
+    await create(); const approved = await create(); await review(approved.id, manager).expect(200);
+    expect((await request(app).get("/api/requests?status=pending&approvalStatus=submitted").set(auth(ta)).expect(200)).body.data).toHaveLength(1);
     await request(app).get("/api/requests?status=approved").set(auth(ta)).expect(400);
-    await request(app).get("/api/requests?approvalStatus=in_progress").set(auth(ta)).expect(400);
     const id = "00000000-0000-0000-0000-000000000000";
     await request(app).get(`/api/requests/${id}`).set(auth(ta)).expect(404);
     await action(id, ta, "claim").expect(404);
     await review(id, manager).expect(404);
   });
+  it("migration resets open work, preserves old decisions and leaves terminal requests unchanged", async () => {
+    const rows = await Promise.all((["pending", "assigned", "in_progress", "closed", "cancelled"] as const).map(status =>
+      prisma.labRequest.create({ data: { ...validRequest, type: "space", requesterEmail: member.email,
+        status, requiresApproval: false, approvalStatus: "not_required", assigneeEmail: status === "pending" ? null : ta.email } })));
+    const active = rows[2]!;
+    await prisma.labRequest.update({ where: { id: active.id }, data: { requiresApproval: true, approvalStatus: "approved" } });
+    const oldDecision = await prisma.approvalDecision.create({ data: { requestId: active.id, outcome: "approved", reason: "Original review", reviewerId: manager.id, reviewerName: manager.name, reviewerEmail: manager.email } });
+    const migration = readFileSync(new URL("../../prisma/migrations/20260920000000_approval_first_workflow/migration.sql", import.meta.url), "utf8");
+    const updates = migration.split(";").map(s => s.trim()).filter(s => s.startsWith("UPDATE"));
+    expect(updates).toHaveLength(2);
+    await prisma.$transaction(updates.map(sql => prisma.$executeRawUnsafe(sql)));
+    for (const old of rows.slice(0, 3)) {
+      expect(await prisma.labRequest.findUniqueOrThrow({ where: { id: old.id } })).toMatchObject({ status: "pending", approvalStatus: "submitted", requiresApproval: true, assigneeEmail: null });
+      await action(old.id, ta, "claim").expect(409);
+    }
+    for (const old of rows.slice(3)) expect(await prisma.labRequest.findUniqueOrThrow({ where: { id: old.id } })).toEqual(old);
+    const history = (await request(app).get(`/api/requests/${active.id}`).set(auth(member)).expect(200)).body.data;
+    expect(history.decision).toBeNull();
+    expect(history.decisionHistory[0]).toMatchObject({ id: oldDecision.id, reason: "Original review", reviewerId: manager.id });
+    expect(history.decisionHistory[0].supersededAt).not.toBeNull();
+    await review(active.id, manager).expect(200);
+    await action(active.id, ta, "claim").expect(200);
+    expect(await prisma.approvalDecision.count({ where: { requestId: active.id } })).toBe(2);
+  });
 });
 
 describe("Manager reports", () => {
   it("restricts aggregates to Manager and counts independent statuses within a UTC date range", async () => {
-    const r = await create(true); await create();
+    const r = await create(); await create();
     await prisma.labRequest.update({ where: { id: r.id }, data: { createdAt: new Date("2026-01-15T23:59:00Z") } });
     for (const user of [member, ta]) await request(app).get("/api/requests/reports").set(auth(user)).expect(403);
     const report = (await request(app).get("/api/requests/reports?from=2026-01-15&to=2026-01-15").set(auth(manager)).expect(200)).body.data;
