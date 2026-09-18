@@ -15,7 +15,7 @@ export type LabRequest = {
 export type Report = { total: number; generatedAt: string; byStatus: { label: string; count: number }[]; byApproval: { label: string; count: number }[]; byType: { label: string; count: number }[] };
 export type TaAction = { action: "claim" | "start" | "close" } | { action: "assign"; assigneeId: string; expectedUpdatedAt: string };
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await sessionToken();
   if (!token) throw new Error("Sign in to continue.");
   const res = await fetch(`${apiBaseUrl}/api${path}`, {

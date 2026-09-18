@@ -1,0 +1,16 @@
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.hint { line-height: 1.7; margin-bottom: 24px; opacity: .8; }
+.card, .empty { padding: 24px; border: 1px solid #716452; border-radius: 12px; margin-bottom: 18px; }
+.card { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.card h2, .empty h2 { font-size: 20px; font-weight: 600; margin: 12px 0 8px; }
+.card p { overflow-wrap: anywhere; line-height: 1.6; }
+.badge { font-size: 12px; color: #c8a96f; }
+.form { display: grid; gap: 12px; align-content: center; }
+.form label { display: grid; gap: 8px; }
+.form select { background: #2d2836; color: #f3e9d5; border: 1px solid #9f8960; border-radius: 6px; padding: 12px; width: 100%; }
+.form button, .refresh { background: #574633; color: #fff4df; border: 1px solid #a48c62; border-radius: 6px; padding: 12px 16px; cursor: pointer; }
+.form button:disabled, .refresh:disabled { opacity: .6; cursor: wait; }
+.form :focus-visible, .refresh:focus-visible { outline: 3px solid #d6bc83; outline-offset: 3px; }
+.error { color: #e4867e; line-height: 1.6; }
+.empty p { line-height: 1.7; }
+@media(max-width: 720px) { .card { grid-template-columns: 1fr; } }
