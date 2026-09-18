@@ -19,7 +19,7 @@ describe("membership approval", () => {
     const target = await account("unassigned", "PENDING");
     await request(app).get("/api/memberships").expect(401);
     await request(app).post(`/api/memberships/${target.id}/approve`).send({ role: "member" }).expect(401);
-    for (const role of ["member", "ta", "admin", "unassigned", "lab_manager"] as const) {
+    for (const role of ["member", "ta", "unassigned", "lab_manager"] as const) {
       const user = await account(role, role === "lab_manager" || role === "unassigned" ? "PENDING" : "APPROVED");
       await request(app).get("/api/memberships").set(user.headers).expect(403);
       await request(app).post(`/api/memberships/${target.id}/approve`).set(user.headers).send({ role: "member" }).expect(403);

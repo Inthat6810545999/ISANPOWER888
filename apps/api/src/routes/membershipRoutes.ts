@@ -16,7 +16,7 @@ membershipRouter.post("/:id/approve", async (req, res) => {
   const id = z.uuid().parse(req.params.id);
   const { role } = z.object({ role: z.enum(["member", "ta", "lab_manager"]) }).strict().parse(req.body);
   const user = await prisma.$transaction(async (tx) => {
-    // Coordinate with admin account changes and recheck the reviewer's current access.
+    // Serialize membership changes and recheck the reviewer's current access.
     await tx.$executeRaw`LOCK TABLE "users" IN SHARE ROW EXCLUSIVE MODE`;
     const reviewer = await tx.user.findUnique({ where: { id: actor(res).id } });
     if (!reviewer?.active || reviewer.role !== "lab_manager" || reviewer.membershipStatus !== "APPROVED") {

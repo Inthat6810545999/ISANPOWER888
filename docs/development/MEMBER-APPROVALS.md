@@ -10,7 +10,7 @@ Menu: **Member approvals** at `/manager/members`.
 The API (`GET /api/memberships`, `POST /api/memberships/:id/approve`) and server
 action verify manager access. Approval stores the reviewer's ID and timestamp.
 Only active, pending, unassigned accounts can be approved. Concurrent or repeated
-decisions return 409. Managers cannot grant system-admin access through this API.
+decisions return 409. Assignable roles are Member, TA and Lab Manager only.
 The existing session remains valid and reloads membership from the database.
 
 Run `npm install`, `npx prisma generate`, and `npx prisma migrate deploy` in

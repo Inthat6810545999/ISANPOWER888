@@ -79,6 +79,8 @@ model User {
   name         String
   role         UserRole @default(unassigned)
   membershipStatus MembershipStatus @default(PENDING)
+  membershipApprovedBy String?
+  membershipApprovedAt DateTime?
   googleSubject String? @unique
   passwordHash String?
   active       Boolean @default(true)

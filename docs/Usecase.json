@@ -35,13 +35,6 @@
           "html": "Lecturer /<br>Lab Manager"
         },
         {
-          "id": "HbGEP3n64xSLTORdmDGh-5",
-          "type": "node",
-          "parent": "1",
-          "label": "System\nAdministrator",
-          "html": "System<br>Administrator"
-        },
-        {
           "id": "HbGEP3n64xSLTORdmDGh-6",
           "type": "node",
           "parent": "1",
@@ -264,20 +257,6 @@
           "target": "HbGEP3n64xSLTORdmDGh-17"
         },
         {
-          "id": "HbGEP3n64xSLTORdmDGh-38",
-          "type": "edge",
-          "parent": "1",
-          "source": "HbGEP3n64xSLTORdmDGh-5",
-          "target": "HbGEP3n64xSLTORdmDGh-18"
-        },
-        {
-          "id": "HbGEP3n64xSLTORdmDGh-39",
-          "type": "edge",
-          "parent": "1",
-          "source": "HbGEP3n64xSLTORdmDGh-5",
-          "target": "HbGEP3n64xSLTORdmDGh-19"
-        },
-        {
           "id": "HbGEP3n64xSLTORdmDGh-40",
           "type": "edge",
           "parent": "1",
@@ -345,13 +324,6 @@
           "type": "edge",
           "parent": "1",
           "source": "HbGEP3n64xSLTORdmDGh-4",
-          "target": "HbGEP3n64xSLTORdmDGh-7"
-        },
-        {
-          "id": "HbGEP3n64xSLTORdmDGh-50",
-          "type": "edge",
-          "parent": "1",
-          "source": "HbGEP3n64xSLTORdmDGh-5",
           "target": "HbGEP3n64xSLTORdmDGh-7"
         },
         {
