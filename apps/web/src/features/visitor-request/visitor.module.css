@@ -1,0 +1,20 @@
+.card { width: min(100%, 820px); background: #faf7f0; border: 1px solid #d7cab7; padding: clamp(20px, 5vw, 44px); }
+.card h1 { font-size: clamp(27px, 5vw, 38px); line-height: 1.2; margin: 14px 0; }
+.intro { color: #776d60; line-height: 1.7; margin-bottom: 28px; }
+.back { display: inline-block; margin-bottom: 24px; text-decoration: underline; text-underline-offset: 4px; font-size: 13px; }
+.form { display: grid; gap: 28px; }
+.section { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 18px; }
+.section legend { font-size: 18px; font-weight: bold; margin-bottom: 18px; }
+.error { color: #973c2e; font-size: 12px; line-height: 1.5; }
+.card [aria-invalid="true"] { border-color: #973c2e; }
+.card input, .card select, .card textarea { color: #34271f; }
+.card :focus-visible { outline: 3px solid #996338; outline-offset: 3px; }
+.notice { padding: 16px; border-left: 3px solid #996338; background: #f0e8da; font-size: 13px; line-height: 1.7; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.card button:disabled { opacity: .6; cursor: wait; }
+.summary { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr; gap: 12px 24px; margin: 24px 0; font-size: 14px; }
+.summary dt { color: #776d60; }
+.summary dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.code { width: 100%; padding: 18px; background: #f0e8da; border: 1px solid #d7cab7; font-family: monospace; font-size: 20px; margin: 12px 0; }
+.status { min-height: 24px; font-size: 13px; margin: 12px 0; }
+@media (max-width: 520px) { .summary { grid-template-columns: 1fr; gap: 8px; } .summary dd { margin-bottom: 10px; } .actions > * { width: 100%; } }
