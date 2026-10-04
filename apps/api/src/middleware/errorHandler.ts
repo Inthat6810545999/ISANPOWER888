@@ -20,6 +20,17 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  if (err && typeof err === "object" && "type" in err) {
+    if (err.type === "entity.parse.failed") {
+      res.status(400).json({ error: "Invalid JSON body" });
+      return;
+    }
+    if (err.type === "entity.too.large") {
+      res.status(413).json({ error: "Request body too large" });
+      return;
+    }
+  }
+
   if (err instanceof ZodError) {
     res.status(400).json({ error: "Validation failed", details: err.issues });
     return;

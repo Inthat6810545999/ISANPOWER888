@@ -39,6 +39,11 @@ enum RequestPriority {
   high
 }
 
+enum RequestSource {
+  member
+  visitor
+}
+
 model LabRequest {
   id               String          @id @default(uuid())
   title            String
@@ -49,6 +54,10 @@ model LabRequest {
   requiresApproval Boolean         @default(true)
   priority         RequestPriority @default(medium)
   location         String          @default("")
+  source           RequestSource   @default(member)
+  publicMessage    String          @default("")
+  visit            VisitDetails?
+  tracking         VisitTrackingCredential?
   requesterEmail   String
   assigneeEmail    String?
   neededBy         DateTime?
@@ -123,4 +132,37 @@ model ApprovalDecision {
   supersededAt  DateTime?
   @@index([requestId])
   @@map("approval_decisions")
+}
+
+model VisitDetails {
+  requestId String @id
+  request LabRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  contactName String
+  email String
+  phone String @default("")
+  organization String @default("")
+  purpose String
+  details String
+  visitDate String
+  timeSlot String
+  // IEEE double exactly represents every safe integer accepted by the API.
+  visitorCount Float
+  requestedHost String @default("")
+  arrangements String @default("")
+  @@map("visit_details")
+}
+
+model VisitTrackingCredential {
+  requestId String @id
+  request LabRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  codeHash String @unique
+  @@map("visit_tracking_credentials")
+}
+
+model PublicRateLimit {
+  key String @id
+  count Int
+  expiresAt DateTime
+  @@index([expiresAt])
+  @@map("public_rate_limits")
 }
