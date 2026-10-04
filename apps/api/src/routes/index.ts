@@ -4,6 +4,8 @@ import { labRequestRouter } from "./labRequestRoutes.js";
 import { authRouter } from "./authRoutes.js";
 import { membershipRouter } from "./membershipRoutes.js";
 
+import { visitRouter } from "./visitRoutes.js";
+
 export const apiRouter = Router();
 
 apiRouter.get("/health", async (_req, res) => {
@@ -17,6 +19,7 @@ apiRouter.get("/health", async (_req, res) => {
   res.json({ status: "ok", database, uptime: process.uptime() });
 });
 
+apiRouter.use("/visits", visitRouter);
 apiRouter.use("/requests", labRequestRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/memberships", membershipRouter);

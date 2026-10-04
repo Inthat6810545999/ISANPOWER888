@@ -5,7 +5,7 @@ import { APPROVAL_STATUSES, REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES 
 import { HttpError } from "../middleware/errorHandler.js";
 import { actor } from "../auth/session.js";
 
-const includeDecision = { decisions: { orderBy: { reviewedAt: "desc" as const } } } as const;
+const includeDecision = { visit: true, decisions: { orderBy: { reviewedAt: "desc" as const } } } as const;
 function withDecision<T extends { decisions: { supersededAt: Date | null }[] }>(record: T) {
   const { decisions, ...request } = record;
   return { ...request, decision: decisions.find((d) => !d.supersededAt) ?? null,
@@ -30,14 +30,14 @@ export async function listLabRequests(req: Request, res: Response): Promise<void
     throw new HttpError(403, "Members can only view their own requests.");
   }
   res.json({ data: (await prisma.labRequest.findMany({
-    where: { ...filter, ...(user.role === "member" ? { requesterEmail: user.email } : {}) },
+    where: { ...filter, ...(user.role === "member" ? { requesterEmail: user.email, source: "member" as const } : {}) },
     include: includeDecision, orderBy: { createdAt: "desc" },
   })).map(withDecision) });
 }
 
 export async function getLabRequest(req: Request<{ id: string }>, res: Response): Promise<void> {
   const found = await prisma.labRequest.findUnique({ where: { id: req.params.id }, include: includeDecision });
-  if (!found || (actor(res).role === "member" && found.requesterEmail !== actor(res).email)) {
+  if (!found || (actor(res).role === "member" && (found.source !== "member" || found.requesterEmail !== actor(res).email))) {
     throw new HttpError(404, "Lab request not found");
   }
   res.json({ data: withDecision(found) });
@@ -52,15 +52,15 @@ export async function createLabRequest(req: Request, res: Response): Promise<voi
   res.status(201).json({ data: withDecision(created) });
 }
 
-const reviewSchema = z.object({ approvalStatus: z.enum(["approved", "rejected"]), reason: z.string().trim().min(1).max(2000) }).strict();
+const reviewSchema = z.object({ approvalStatus: z.enum(["approved", "rejected"]), reason: z.string().trim().min(1).max(2000), publicMessage: z.string().trim().max(2000).optional() }).strict();
 /** A final decision is immutable; the work status is never changed by review. */
 export async function updateLabRequestApprovalStatus(req: Request<{ id: string }>, res: Response): Promise<void> {
-  const { approvalStatus, reason } = reviewSchema.parse(req.body);
+  const { approvalStatus, reason, publicMessage } = reviewSchema.parse(req.body);
   const reviewer = actor(res);
   const updated = await prisma.$transaction(async (tx) => {
     const result = await tx.labRequest.updateMany({
       where: { id: req.params.id, requiresApproval: true, approvalStatus: { in: ["submitted", "under_review"] }, status: { notIn: ["closed", "cancelled"] } },
-      data: { approvalStatus },
+      data: { approvalStatus, ...(publicMessage !== undefined ? { publicMessage } : {}) },
     });
     if (!result.count) {
       if (!await tx.labRequest.findUnique({ where: { id: req.params.id } })) throw new HttpError(404, "Lab request not found");
