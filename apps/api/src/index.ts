@@ -4,7 +4,7 @@ import { connectDatabase } from "./db/connect.js";
 
 await connectDatabase();
 
-const app = createApp(env.CORS_ORIGIN);
+const app = createApp(env.CORS_ORIGIN, env.NODE_ENV);
 
 app.listen(env.PORT, process.env.HOST ?? "0.0.0.0", () => {
   console.log(`API listening on http://localhost:${env.PORT}`);
