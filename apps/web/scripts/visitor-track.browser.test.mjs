@@ -199,7 +199,8 @@ test("keyboard focus, mobile widths, requested-date wording and missing message"
   await found(page);
   assert.equal(await page.getByText("Message from the lab", { exact: true }).count(), 0);
   assert.equal(await page.getByText("1 December 2099", { exact: true }).count(), 1);
-  assert.equal(await page.getByText("This is the date and time you requested. It is not a confirmed appointment.", { exact: true }).count(), 1);
+  // Approved fixture: the note must not read as a refusal, and must not promise a booking.
+  assert.equal(await page.getByText("The lab has accepted your request. This is still the date and time you asked for — the lab will contact you to confirm the exact time.", { exact: true }).count(), 1);
   for (const width of [320, 375]) {
     await page.setViewportSize({ width, height: 800 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);

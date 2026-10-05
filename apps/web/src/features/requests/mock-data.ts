@@ -10,6 +10,7 @@ const base = {
   requester: MOCK_MEMBER, assignee: null, location: "Electronics Lab",
   neededBy: "", requiresApproval: true, approvalStatus: "submitted",
   description: "Please help the team prepare the lab resources for our next project session.",
+  source: "member", publicMessage: "", visit: null,
 } satisfies Omit<WorkspaceRequest, "id" | "title" | "createdAt">;
 
 export const MOCK_REQUESTS: WorkspaceRequest[] = [

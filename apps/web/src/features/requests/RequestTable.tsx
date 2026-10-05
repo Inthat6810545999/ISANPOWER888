@@ -6,6 +6,7 @@ import { Icon } from "@/components/workspace/Icon";
 import styles from "@/components/workspace/workspace.module.css";
 import { CATEGORIES, PRIORITIES, STATUSES, type WorkspaceRequest } from "./types";
 import { APPROVAL_LABELS } from "@/lib/request-status";
+import { PublicMessage, VisitorDetails } from "./VisitorDetails";
 
 // Fixed labels avoid Intl locale-data differences between server and browser (Sep/Sept).
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -85,7 +86,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
           <tbody>{visible.map((request) => <tr key={request.id}>
             <td><div className={styles.requestCell}><span className={styles.categoryIcon}><Icon name={request.category === "access" ? "shield" : request.category === "general" ? "requests" : "flask"} /></span>
               <div><button className={styles.requestTitle} onClick={() => setSelectedId(request.id)}>{request.title}</button>
-                <p>{request.id} · {CATEGORIES[request.category]} · {request.requester.name}</p></div></div></td>
+                <p>{request.id} · {CATEGORIES[request.category]} · {request.requester.name}{request.source === "visitor" && " · External visitor"}</p></div></div></td>
             <td><StatusBadge request={request} /></td>
             <td><span className={styles.priority} data-priority={request.priority}>▸ {request.priority}</span></td>
             <td>{request.assignee ? <span className={styles.assignee}><span className={styles.avatar}>{request.assignee.initials}</span>{request.assignee.name}</span> : "Unassigned"}</td>
@@ -111,11 +112,14 @@ export function RequestTable({ title, requests, renderRowActions }: {
           <div><dt>Category</dt><dd>{CATEGORIES[selected.category]}</dd></div><div><dt>Priority</dt><dd className={styles.priority}>{selected.priority}</dd></div>
           <div><dt>Location</dt><dd>{selected.location || "Not specified"}</dd></div><div><dt>Needed by</dt><dd>{formatDate(selected.neededBy)}</dd></div>
         </dl>
+        <VisitorDetails request={selected} />
+        <PublicMessage request={selected} />
         {selected.decision && <section className={styles.decisionRecord}>
           <h3>Approval decision: {APPROVAL_LABELS[selected.decision.outcome]}</h3>
           <p className={styles.description}>{selected.decision.reason}</p>
           <p>Reviewed by {selected.decision.reviewerName} ({selected.decision.reviewerEmail})</p>
           <p>{new Date(selected.decision.reviewedAt).toLocaleString()}</p>
+          <p className={styles.helper}>Internal record. This reason is never shown to the requester.</p>
         </section>}
         {!!selected.decisionHistory?.length && <section className={styles.decisionRecord}>
           <h3>Previous decisions</h3>
