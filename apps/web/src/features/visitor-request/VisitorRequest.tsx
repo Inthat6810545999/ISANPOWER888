@@ -89,13 +89,17 @@ export function VisitorRequest() {
       <p className={styles.intro}>Your request is awaiting Lab Manager approval. This is not a confirmed appointment.</p>
       <label htmlFor="tracking-code">Your tracking code</label>
       <input id="tracking-code" className={styles.code} readOnly value={receipt.trackingCode} onFocus={(event) => event.currentTarget.select()} />
-      <div className={styles.actions}><button type="button" className={shared.primaryButton} onClick={copyCode}>Copy tracking code</button></div>
+      <div className={styles.actions}>
+        <button type="button" className={shared.primaryButton} onClick={copyCode}>Copy tracking code</button>
+        <Link className={shared.secondaryButton} href={`/visit/track#code=${encodeURIComponent(receipt.trackingCode)}`} prefetch={false} referrerPolicy="no-referrer">Track your request</Link>
+      </div>
       <p className={styles.status} role="status">{copyMessage}</p>
       <p className={styles.notice}>Save this code before leaving or refreshing this page. Keep it private and quote it when contacting the lab about your visit.</p>
       {summary}
       <Link className={shared.secondaryButton} href="/open-house">Return to Open House</Link>
     </> : <>
       <p className={styles.intro}>{step === "review" ? "Make sure the contact details and preferred date are correct before sending." : "Request a visit for yourself or your group. No account needed. Fields marked optional can be left blank."}</p>
+      {step === "form" && <p className={styles.trackingPrompt}>Already submitted? <Link href="/visit/track">Track your request</Link></p>}
       {message && <p ref={errorBox} tabIndex={-1} role="alert" className={shared.error}>{message}</p>}
       {step === "form" ? <form className={styles.form} noValidate onSubmit={review}>
         <fieldset className={styles.section}><legend>01 / Your contact details</legend>
