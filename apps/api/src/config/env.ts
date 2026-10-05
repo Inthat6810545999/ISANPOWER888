@@ -5,7 +5,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1),
-  CORS_ORIGIN: z.string().default("http://localhost:3000"),
+  // Development uses the two explicit loopback origins; production requires one.
+  CORS_ORIGIN: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
