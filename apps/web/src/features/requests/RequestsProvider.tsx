@@ -13,7 +13,7 @@ type RequestsContextValue = {
   requests: WorkspaceRequest[];
   addRequest: (draft: RequestDraft) => Promise<void>;
   taAction: (id: string, payload: TaAction) => Promise<void>;
-  review: (id: string, decision: "approved" | "rejected", reason: string) => Promise<void>;
+  review: (id: string, decision: "approved" | "rejected", reason: string, publicMessage?: string) => Promise<void>;
   refresh: () => Promise<void>;
   loading: boolean;
   refreshing: boolean;
@@ -90,11 +90,13 @@ export function RequestsProvider({ children, user, scope = "member" }: { childre
     saved(result.data, payload.action === "claim" ? "Request assigned to you." : payload.action === "start" ? "Work started. The member can see the updated status." : "Request closed. The member can see the updated status.");
   }
 
-  async function review(id: string, decision: "approved" | "rejected", reason: string) {
+  async function review(id: string, decision: "approved" | "rejected", reason: string, publicMessage?: string) {
     setNotice("");
-    const result = await reviewRequest(id, decision, reason);
+    const result = await reviewRequest(id, decision, reason, publicMessage);
     if (!result.ok) { void refresh(); throw new Error(result.error); }
-    saved(result.data, "Decision recorded with your identity and review time.");
+    saved(result.data, publicMessage?.trim()
+      ? "Decision recorded. Your message is now visible to the requester."
+      : "Decision recorded with your identity and review time.");
   }
 
   return <RequestsContext.Provider value={{ user, review, requests, addRequest, taAction, refresh, loading, refreshing, error, notice, dismissNotice: () => setNotice("") }}>

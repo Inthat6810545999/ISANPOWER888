@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { WORK_LABELS, REVIEW_LABELS, SLOT_LABELS, readPublicVisit, requestedDate } from "../src/features/visitor-track/contract.ts";
+import { WORK_LABELS, REVIEW_LABELS, SLOT_LABELS, readPublicVisit, requestedDate, scheduleNote } from "../src/features/visitor-track/contract.ts";
 
 test("Visitor labels cover exactly the real Prisma enums", () => {
   const schema = readFileSync(new URL("../../api/prisma/schema.prisma", import.meta.url), "utf8");
@@ -26,5 +26,17 @@ test("missing messages are optional and markup stays text", () => {
 test("invalid public dates, slots and enum values fail closed", () => {
   for (const patch of [{ status: "approved" }, { approvalStatus: "closed" }, { timeSlot: "evening" }, { visitDate: "2099-02-30" }, { publicMessage: {} }]) {
     assert.equal(readPublicVisit({ data: { ...data, ...patch } }), null);
+  }
+});
+
+test("the schedule note never promises a booking and never reads as a refusal", () => {
+  const approved = scheduleNote("approved");
+  // Approved must not imply a reserved slot: no confirmed time is ever stored.
+  assert.equal(/not a confirmed appointment/.test(approved), false);
+  assert.match(approved, /confirm the exact time/);
+
+  // Every other state keeps the plain preference wording.
+  for (const status of ["submitted", "under_review", "rejected", "cancelled", "not_required"]) {
+    assert.equal(scheduleNote(status), "This is the date and time you requested. It is not a confirmed appointment.");
   }
 });

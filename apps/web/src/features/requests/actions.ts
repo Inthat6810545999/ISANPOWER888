@@ -9,14 +9,31 @@ import type { Role } from "@/lib/session-types";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
+function initialsOf(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "V";
+  return (parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : parts[0].slice(0, 2)).toUpperCase();
+}
+
+/** Visitors have no lab account, so requesterEmail is empty by design.
+ *  Identity comes from the staff-only visit record instead. */
+function requesterOf(request: LabRequest) {
+  const visit = request.visit;
+  if (request.source === "visitor" && visit) {
+    return { id: visit.email, name: visit.contactName, initials: initialsOf(visit.contactName) };
+  }
+  return personFromEmail(request.requesterEmail);
+}
+
 function toWorkspace(request: LabRequest): WorkspaceRequest {
   return { id: request.id, title: request.title, description: request.description,
     category: request.type, priority: request.priority, location: request.location,
     neededBy: request.neededBy?.slice(0, 10) ?? "", requiresApproval: request.requiresApproval,
     status: request.status, approvalStatus: request.approvalStatus,
-    requester: personFromEmail(request.requesterEmail),
+    requester: requesterOf(request),
     assignee: request.assigneeEmail ? personFromEmail(request.assigneeEmail) : null,
-    createdAt: request.createdAt, updatedAt: request.updatedAt, decision: request.decision, decisionHistory: request.decisionHistory };
+    createdAt: request.createdAt, updatedAt: request.updatedAt, decision: request.decision, decisionHistory: request.decisionHistory,
+    source: request.source ?? "member", publicMessage: request.publicMessage ?? "", visit: request.visit ?? null };
 }
 
 function failure(error: unknown): { ok: false; error: string } {
@@ -63,10 +80,15 @@ export async function changeTaRequest(id: string, payload: TaAction): Promise<Re
   } catch (error) { return failure(error); }
 }
 
-export async function reviewRequest(id: string, decision: "approved" | "rejected", reason: string): Promise<Result<WorkspaceRequest>> {
+/** `reason` stays internal. `publicMessage` is the only text sent to the requester,
+ *  so it is passed through separately and never derived from the reason. */
+export async function reviewRequest(id: string, decision: "approved" | "rejected", reason: string, publicMessage?: string): Promise<Result<WorkspaceRequest>> {
   try {
+    if (publicMessage !== undefined && (typeof publicMessage !== "string" || publicMessage.trim().length > 2000)) {
+      throw new Error("The message to the requester must be 2000 characters or fewer.");
+    }
     await requireActionRole("lab_manager");
-    return { ok: true, data: toWorkspace(await reviewLabRequest(id, decision, reason)) };
+    return { ok: true, data: toWorkspace(await reviewLabRequest(id, decision, reason, publicMessage?.trim())) };
   } catch (error) { return failure(error); }
 }
 

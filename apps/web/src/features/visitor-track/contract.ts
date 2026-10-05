@@ -14,6 +14,15 @@ export const REVIEW_LABELS: Record<ApprovalStatus, string> = {
 };
 export const SLOT_LABELS = { morning: "09:00–12:00", afternoon: "13:00–16:00" };
 
+/** The system stores no confirmed time: visitDate and timeSlot stay exactly as the
+ *  Visitor submitted them. "Approved" must therefore never read as a booked slot,
+ *  but pairing it with a flat "not a confirmed appointment" reads as a refusal. */
+export function scheduleNote(approvalStatus: ApprovalStatus) {
+  return approvalStatus === "approved"
+    ? "The lab has accepted your request. This is still the date and time you asked for — the lab will contact you to confirm the exact time."
+    : "This is the date and time you requested. It is not a confirmed appointment.";
+}
+
 export function readPublicVisit(body: unknown): PublicVisit | null {
   if (!body || typeof body !== "object" || !("data" in body)) return null;
   const data = body.data;

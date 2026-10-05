@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import shared from "@/components/workspace/workspace.module.css";
 import styles from "../visitor-request/visitor.module.css";
-import { readPublicVisit, requestedDate, REVIEW_LABELS, SLOT_LABELS, WORK_LABELS, type PublicVisit } from "./contract";
+import { readPublicVisit, requestedDate, REVIEW_LABELS, scheduleNote, SLOT_LABELS, WORK_LABELS, type PublicVisit } from "./contract";
 
 type State = { kind: "idle" | "loading" } | { kind: "error"; message: string } | { kind: "found"; visit: PublicVisit };
 const unavailable = "Visit tracking is temporarily unavailable. Please try again later.";
@@ -90,7 +90,7 @@ export function VisitorTrack() {
           <dt>Requested time</dt><dd>{SLOT_LABELS[state.visit.timeSlot]} · Thailand time (Asia/Bangkok)</dd>
           {state.visit.publicMessage && <><dt>Message from the lab</dt><dd>{state.visit.publicMessage}</dd></>}
         </dl>
-        <p className={styles.notice}>This is the date and time you requested. It is not a confirmed appointment.</p>
+        <p className={styles.notice}>{scheduleNote(state.visit.approvalStatus)}</p>
       </section>}
     </div>
   </section></main>;
