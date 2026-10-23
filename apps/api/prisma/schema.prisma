@@ -56,6 +56,10 @@ model LabRequest {
   location         String          @default("")
   source           RequestSource   @default(member)
   publicMessage    String          @default("")
+  publicMessageUpdatedById    String?
+  publicMessageUpdatedByName  String?
+  publicMessageUpdatedByEmail String?
+  publicMessageUpdatedAt     DateTime?
   visit            VisitDetails?
   tracking         VisitTrackingCredential?
   requesterEmail   String

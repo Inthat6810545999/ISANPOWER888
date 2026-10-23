@@ -169,6 +169,7 @@ Base URL: `http://127.0.0.1:4000`. All endpoints except health, password login, 
 | PATCH | `/api/requests/:id/ta-action` | TA; self-claim, start, close |
 | PATCH | `/api/requests/:id/status` | TA compatibility route; start/close with identical gates |
 | PATCH | `/api/requests/:id/approval-status` | Manager; approve/reject with reason |
+| PATCH | `/api/requests/:id/public-message` | Manager; edit/clear a decided Visitor request's public message |
 | GET | `/api/requests/reports` | Manager; optional `from`/`to` ISO dates, UTC creation dates |
 
 POST request fields: `title`, `type`, optional `description`, `priority`, `location`, `neededBy`. The Member form requires a description too. The server always sets `requiresApproval=true` and `approvalStatus=submitted`. Sending `requiresApproval`, `requesterEmail`, `role`, or initial statuses is rejected.
@@ -176,6 +177,8 @@ POST request fields: `title`, `type`, optional `description`, `priority`, `locat
 TA payloads are `{action: "claim"}`, `{action: "start"}`, or `{action: "close"}`. All require approved requests. Claim assigns only the acting TA; only that TA can start/close in sequence. The removed `assign` action is rejected. The legacy `/status` endpoint applies the same checks.
 
 Manager payload: `{approvalStatus: "approved" | "rejected", reason}`. The reason is trimmed and must contain 1–2000 characters. The server supplies all reviewer metadata. Review applies to active, required requests in `submitted` or `under_review`; a final decision cannot be replaced.
+
+Visitor message editing uses `{publicMessage: string}` (trimmed, at most 2,000 characters; empty clears). Only Visitor-source requests already approved/rejected are eligible, including closed work. The server records the latest editor and time without changing the approval decision or work state. Public tracking still exposes only its existing five fields. See [Visitor message API contract and frontend handoff](docs/development/VISITOR-MESSAGE-API.md).
 
 List filters: `requesterEmail`, `status`, `approvalStatus`, `type`. A Member cannot use a filter to read another Member's data. Unauthenticated requests return 401, wrong-role actions 403, hidden/missing details 404, invalid fields 400, and workflow/concurrency conflicts 409. Updates use atomic state checks; decisions and audit records are saved in one transaction.
 

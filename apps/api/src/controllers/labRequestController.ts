@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db/connect.js";
 import { APPROVAL_STATUSES, REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES } from "../models/LabRequest.js";
 import { HttpError } from "../middleware/errorHandler.js";
-import { actor } from "../auth/session.js";
+import { actor, type Actor } from "../auth/session.js";
 
 const includeDecision = { visit: true, decisions: { orderBy: { reviewedAt: "desc" as const } } } as const;
 function withDecision<T extends { decisions: { supersededAt: Date | null }[] }>(record: T) {
@@ -52,7 +52,31 @@ export async function createLabRequest(req: Request, res: Response): Promise<voi
   res.status(201).json({ data: withDecision(created) });
 }
 
-const reviewSchema = z.object({ approvalStatus: z.enum(["approved", "rejected"]), reason: z.string().trim().min(1).max(2000), publicMessage: z.string().trim().max(2000).optional() }).strict();
+const publicMessageSchema = z.string().trim().max(2000);
+function messageEditor(user: Actor) {
+  return { publicMessageUpdatedById: user.id, publicMessageUpdatedByName: user.name,
+    publicMessageUpdatedByEmail: user.email, publicMessageUpdatedAt: new Date() };
+}
+const reviewSchema = z.object({ approvalStatus: z.enum(["approved", "rejected"]), reason: z.string().trim().min(1).max(2000), publicMessage: publicMessageSchema.optional() }).strict();
+
+const editPublicMessageSchema = z.object({ publicMessage: publicMessageSchema }).strict();
+/** Message edits are independent of the immutable approval decision and work state. */
+export async function updateVisitorPublicMessage(req: Request<{ id: string }>, res: Response): Promise<void> {
+  const { publicMessage } = editPublicMessageSchema.parse(req.body);
+  const editor = actor(res);
+  const updated = await prisma.$transaction(async (tx) => {
+    const result = await tx.labRequest.updateMany({
+      where: { id: req.params.id, source: "visitor", approvalStatus: { in: ["approved", "rejected"] } },
+      data: { publicMessage, ...messageEditor(editor) },
+    });
+    if (!result.count) {
+      if (!await tx.labRequest.findUnique({ where: { id: req.params.id } })) throw new HttpError(404, "Lab request not found");
+      throw new HttpError(409, "Only approved or rejected visitor requests can have their public message edited.");
+    }
+    return tx.labRequest.findUniqueOrThrow({ where: { id: req.params.id }, include: includeDecision });
+  });
+  res.json({ data: withDecision(updated) });
+}
 /** A final decision is immutable; the work status is never changed by review. */
 export async function updateLabRequestApprovalStatus(req: Request<{ id: string }>, res: Response): Promise<void> {
   const { approvalStatus, reason, publicMessage } = reviewSchema.parse(req.body);
@@ -65,6 +89,10 @@ export async function updateLabRequestApprovalStatus(req: Request<{ id: string }
     if (!result.count) {
       if (!await tx.labRequest.findUnique({ where: { id: req.params.id } })) throw new HttpError(404, "Lab request not found");
       throw new HttpError(409, "This request does not need review, is no longer active, or has already been reviewed.");
+    }
+    // Capture the initial public-message author too; do not invent metadata for old records.
+    if (publicMessage !== undefined) {
+      await tx.labRequest.updateMany({ where: { id: req.params.id, source: "visitor" }, data: messageEditor(reviewer) });
     }
     await tx.approvalDecision.create({ data: {
       requestId: req.params.id, outcome: approvalStatus, reason, reviewerId: reviewer.id,
