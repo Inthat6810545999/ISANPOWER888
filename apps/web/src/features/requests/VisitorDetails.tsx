@@ -4,6 +4,7 @@ import styles from "@/components/workspace/workspace.module.css";
 import { requestedDate, SLOT_LABELS } from "@/features/visitor-track/contract";
 import { PURPOSES } from "@/features/visitor-request/validation";
 import type { WorkspaceRequest } from "./types";
+import { PublicMessageMetadata } from "./PublicMessageMetadata";
 
 const SLOT_NAMES = { morning: "Morning", afternoon: "Afternoon" } as const;
 
@@ -43,6 +44,7 @@ export function PublicMessage({ request }: { request: WorkspaceRequest }) {
         ? <p className={styles.description}>{request.publicMessage}</p>
         : <p>No message yet. The requester sees only the status until a Lab Manager writes one.</p>}
       <p className={styles.helper}>Visible on the public tracking page. The approval reason and decision history are never shown there.</p>
+      <PublicMessageMetadata request={request} />
     </div>
   </section>;
 }

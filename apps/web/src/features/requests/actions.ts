@@ -33,6 +33,10 @@ function toWorkspace(request: LabRequest): WorkspaceRequest {
     requester: requesterOf(request),
     assignee: request.assigneeEmail ? personFromEmail(request.assigneeEmail) : null,
     createdAt: request.createdAt, updatedAt: request.updatedAt, decision: request.decision, decisionHistory: request.decisionHistory,
+    publicMessageUpdatedById: request.publicMessageUpdatedById ?? null,
+    publicMessageUpdatedByName: request.publicMessageUpdatedByName ?? null,
+    publicMessageUpdatedByEmail: request.publicMessageUpdatedByEmail ?? null,
+    publicMessageUpdatedAt: request.publicMessageUpdatedAt ?? null,
     source: request.source ?? "member", publicMessage: request.publicMessage ?? "", visit: request.visit ?? null };
 }
 
