@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireRole, requireSession } from "../auth/session.js";
 import { createLabRequest, performTaAction, getLabRequest, listLabRequests, updateLabRequestStatus,
-  updateLabRequestApprovalStatus, requestReports } from "../controllers/labRequestController.js";
+  updateLabRequestApprovalStatus, updateVisitorPublicMessage, requestReports } from "../controllers/labRequestController.js";
 
 export const labRequestRouter = Router();
 labRequestRouter.use(requireSession);
@@ -12,3 +12,4 @@ labRequestRouter.get("/:id", requireRole("member", "ta", "lab_manager"), getLabR
 labRequestRouter.patch("/:id/ta-action", requireRole("ta"), performTaAction);
 labRequestRouter.patch("/:id/status", requireRole("ta"), updateLabRequestStatus);
 labRequestRouter.patch("/:id/approval-status", requireRole("lab_manager"), updateLabRequestApprovalStatus);
+labRequestRouter.patch("/:id/public-message", requireRole("lab_manager"), updateVisitorPublicMessage);
