@@ -43,6 +43,10 @@ export type WorkspaceRequest = RequestDraft & {
   source: RequestSource;
   /** The only text the requester can read on /visit/track. Never holds `reason`. */
   publicMessage: string;
+  publicMessageUpdatedById?: string | null;
+  publicMessageUpdatedByName?: string | null;
+  publicMessageUpdatedByEmail?: string | null;
+  publicMessageUpdatedAt?: string | null;
   /** Staff-only contact and scheduling detail; null for ordinary member requests. */
   visit: VisitDetails | null;
 };

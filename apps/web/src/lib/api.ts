@@ -20,6 +20,10 @@ export type LabRequest = {
   location: string; requesterEmail: string; neededBy: string | null; assigneeEmail: string | null;
   createdAt: string; updatedAt: string; decision: ApprovalDecision | null; decisionHistory: ApprovalDecision[];
   source?: RequestSource; publicMessage?: string | null; visit?: VisitDetails | null;
+  publicMessageUpdatedById?: string | null;
+  publicMessageUpdatedByName?: string | null;
+  publicMessageUpdatedByEmail?: string | null;
+  publicMessageUpdatedAt?: string | null;
 };
 export type Report = { total: number; generatedAt: string; byStatus: { label: string; count: number }[]; byApproval: { label: string; count: number }[]; byType: { label: string; count: number }[] };
 export type TaAction = { action: "claim" | "start" | "close" };
