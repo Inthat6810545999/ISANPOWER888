@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:contracts": "node --test scripts/request-status.test.mjs",
+    "test:contracts": "node --test scripts/request-status.test.mjs scripts/visitor-request.test.mjs",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
