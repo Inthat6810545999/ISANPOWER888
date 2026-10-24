@@ -6,11 +6,11 @@ Scope: CI checks and the Visitor public-message feature. This is a test record, 
 
 | Case | Expected | Actual | Result | Evidence / limit |
 | --- | --- | --- | --- | --- |
-| Web CI job | `npm ci`, lint, typecheck, contract tests, build on Node 24 | Job added to `.github/workflows/ci.yml` | Configured; remote run pending | No GitHub Actions run for these unpushed local changes |
+| Web CI job | `npm ci`, lint, typecheck, contract tests, build on Node 24 | All steps passed in GitHub Actions run 40133102095 | Pass | https://github.com/Inthat6810545999/ISANPOWER888/actions/runs/40133102095 |
 | Visitor form in regular tests | Existing form tests run under `test:contracts` alongside status and tracking contracts | 18 cases pass with Node 24.22.1 | Pass locally | `apps/web/package.json`; command output |
 | Web lint | No errors | Passed locally | Pass | `npm --prefix apps/web run lint` |
 | Web typecheck/build | Pass in a clean checkout | Both pass on Node 24 after moving stale generated `.next/dev/types` out of the local checkout | Pass locally | Initial failure was a September-generated reference to removed `/admin/page`; clean CI run still pending |
-| API CI job | Isolated `_test` database, API lint/typecheck/tests/build | Existing job retained unchanged | Configured; remote run pending | Do not run destructive API tests against development/demo DB |
+| API CI job | Isolated `_test` database, API lint/typecheck/tests/build | All steps passed in GitHub Actions run 40133102095 | Pass | https://github.com/Inthat6810545999/ISANPOWER888/actions/runs/40133102095 |
 | Visitor message and tracking API security | Only eligible Manager edits; wrong roles denied; public response has limited fields | 19 focused API cases pass in a uniquely named `_test` database | Pass locally | `npm --prefix apps/web run test:public-message-live` runs both focused suites before the browser flow |
 | Manager to Visitor live flow | Manager save; fresh Visitor lookup; clear and refresh | Live API + browser test passes on Node 24 | Pass locally | `apps/web/scripts/public-message.live.test.mjs`; isolated DB created and dropped; existing evidence screenshots refreshed |
 
@@ -33,4 +33,4 @@ Record the tested commit, test database, browser profiles, expected and actual r
 
 The backend and frontend feature branches are integrated in the tested checkout. The focused API cases belong to the backend owner; this is an independent integration run of those tests and the live browser flow. A macOS cleanup defect in the live test was fixed in `apps/web/scripts/public-message.live.test.mjs`; the earlier interrupted run left an isolated test database, which was removed. The passing rerun created and dropped a new isolated database.
 
-Before closing QA: run the clean CI workflow, attach its URL, complete the original Member/Manager/TA smoke paths and UX review, and replace each remaining Pending cell with Pass/Fail plus evidence. Do not use the development or demo database for API tests; the test suite deletes records and requires a database name ending in `_test`.
+Before closing QA: complete the original Member/Manager/TA smoke paths and UX review, and replace each remaining Pending cell with Pass/Fail plus evidence. Do not use the development or demo database for API tests; the test suite deletes records and requires a database name ending in `_test`.
