@@ -121,7 +121,8 @@ export function VisitorRequest() {
       </form> : <>
         {summary}
         <p className={styles.notice}>Your preferred date and time are subject to approval. Save the tracking code shown after a successful submission.</p>
-        <div className={styles.actions} style={{ marginTop: 24 }}><button type="button" className={shared.secondaryButton} disabled={pending} onClick={() => { setStep("form"); setMessage(""); }}>Edit details</button><button type="button" className={shared.primaryButton} disabled={pending} onClick={submit}>{pending ? "Sending request…" : "Send visit request"}</button></div>
+        <p className={styles.status} role="status">{pending ? "Sending your request… keep this page open until it is saved." : ""}</p>
+        <div className={styles.actions} style={{ marginTop: 24 }} aria-busy={pending}><button type="button" className={shared.secondaryButton} disabled={pending} onClick={() => { setStep("form"); setMessage(""); }}>Edit details</button><button type="button" className={shared.primaryButton} disabled={pending} onClick={submit}>{pending ? "Sending request…" : "Send visit request"}</button></div>
       </>}
     </>}
   </section></main>;

@@ -51,7 +51,7 @@ export function RequestSubmission() {
     <PageHeading title="Create a request" description="A few clear details make a good start." />
     <Dialog titleId={titleId} onClose={close}>
       <div className={styles.dialogHeader}><p className={styles.eyebrow}>LET’S GET IT MOVING</p><h2 id={titleId}>Create a request</h2><p>A few clear details make a good start.</p></div>
-      <form className={styles.requestForm} onSubmit={submit}>
+      <form className={styles.requestForm} onSubmit={submit} aria-busy={submitted}>
         <label className={styles.field}>Request title *<input autoFocus name="title" required maxLength={200} placeholder="e.g. Calibrate the oscilloscope for sensor testing" /></label>
         <div className={styles.formGrid}>
           <label className={styles.field}>Category *<select name="category" defaultValue="equipment">{Object.entries(CATEGORIES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
@@ -65,7 +65,7 @@ export function RequestSubmission() {
         </div>
         <div className={styles.approvalBox}><Icon name="shield" /><span><strong>Every request needs Lab Manager approval</strong><small>A TA can accept and start your request only after it is approved.</small></span></div>
         {error && <p role="alert" className={styles.error}>{error}</p>}
-        <div className={styles.formFooter}><span>Submit to save to your lab workspace</span><div><button className={styles.secondaryButton} type="button" disabled={submitted} onClick={close}>Cancel</button><button className={styles.primaryButton} type="submit" disabled={submitted}>{submitted ? "Submitting…" : "Submit request"}<Icon name="arrow" /></button></div></div>
+        <div className={styles.formFooter}><span role="status">{submitted ? "Saving your request… keep this page open." : "Submit to save to your lab workspace"}</span><div><button className={styles.secondaryButton} type="button" disabled={submitted} onClick={close}>Cancel</button><button className={styles.primaryButton} type="submit" disabled={submitted}>{submitted ? "Submitting…" : "Submit request"}<Icon name="arrow" /></button></div></div>
       </form>
     </Dialog>
   </>;
