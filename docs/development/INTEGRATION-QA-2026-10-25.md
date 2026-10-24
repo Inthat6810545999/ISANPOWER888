@@ -13,6 +13,7 @@ Scope: CI checks and the Visitor public-message feature. This is a test record, 
 | API CI job | Isolated `_test` database, API lint/typecheck/tests/build | All steps passed in GitHub Actions run 40133102095 | Pass | https://github.com/Inthat6810545999/ISANPOWER888/actions/runs/40133102095 |
 | Visitor message, tracking and core workflow API security | Only eligible Manager edits; wrong roles denied; public response has limited fields; approval and rejection gates work | 40 API cases pass across message, tracking and request routes in a uniquely named `_test` database | Pass locally | `npm --prefix apps/web run test:public-message-live` runs all three suites before the browser flow |
 | Manager to Visitor live flow | Manager save; fresh Visitor lookup; clear and refresh | Live API + browser test passes on Node 24 | Pass locally | `apps/web/scripts/public-message.live.test.mjs`; isolated DB created and dropped; existing evidence screenshots refreshed |
+| Member/Visitor/TA workflow UX | Loading, failure, retry and duplicate actions are handled; rejection and pending work read separately | Person 3's browser fixture test passes after PR #21 was merged into this QA branch | Pass locally | `npm --prefix apps/web run test:workflow-ux-browser`; screenshots in `docs/development/evidence/workflow-ux/` |
 
 ## Integration checklist after teammate branches are merged
 
@@ -29,8 +30,8 @@ Record the tested commit, test database, browser profiles, expected and actual r
 | Tracking privacy | No internal reason, editor identity, contact data or session token in public response | Pass - focused API and live browser tests |
 | Member -> Manager -> TA approval flow | Submit, approve, self-claim, start and close succeed | Pass - isolated API workflow test; browser UI smoke remains to be done |
 | Rejection flow | Rejected request cannot be claimed, started or closed | Pass - isolated API workflow test; browser UI smoke remains to be done |
-| UX loading/error/double-submit | Input retained on failure; buttons disabled during request; success only after API confirmation | Pending person 3 merge/review |
+| UX loading/error/double-submit | Input retained on failure; buttons disabled during request; success only after API confirmation | Pass - browser fixture test after PR #21 merge |
 
 The backend and frontend feature branches are integrated in the tested checkout. The focused API cases belong to the backend owner; this is an independent integration run of those tests and the live browser flow. A macOS cleanup defect in the live test was fixed in `apps/web/scripts/public-message.live.test.mjs`; the earlier interrupted run left an isolated test database, which was removed. The passing rerun created and dropped a new isolated database.
 
-Before closing QA: complete the original Member/Manager/TA browser UI smoke paths and review person 3's UX changes after they are integrated. Replace the remaining Pending cell with Pass/Fail plus evidence. Do not use the development or demo database for API tests; the test suite deletes records and requires a database name ending in `_test`.
+Before closing QA: complete the original Member/Manager/TA browser UI smoke paths with a running database and record evidence. Do not use the development or demo database for API tests; the test suite deletes records and requires a database name ending in `_test`.
