@@ -23,7 +23,17 @@ test("real API + isolated PostgreSQL: Manager save -> fresh Visitor lookup", { t
   let db, server, next, browser, created = false;
   t.after(async () => {
     await browser?.close();
-    if (next) await new Promise(resolve => spawn("taskkill", ["/PID", String(next.pid), "/T", "/F"], { stdio: "ignore" }).on("exit", resolve));
+    if (next) await new Promise(resolve => {
+      if (process.platform === "win32") {
+        const stop = spawn("taskkill", ["/PID", String(next.pid), "/T", "/F"], { stdio: "ignore" });
+        stop.once("exit", resolve);
+        stop.once("error", resolve);
+      } else {
+        next.once("exit", resolve);
+        next.once("error", resolve);
+        next.kill("SIGTERM");
+      }
+    });
     if (server) await new Promise(resolve => server.close(resolve));
     await db?.$disconnect();
     if (created) await admin.$executeRawUnsafe(`DROP DATABASE "${database}" WITH (FORCE)`);
@@ -35,7 +45,7 @@ test("real API + isolated PostgreSQL: Manager save -> fresh Visitor lookup", { t
     cwd: fileURLToPath(new URL("../../api/", import.meta.url)), env: process.env, stdio: "pipe",
   });
   const integration = execFileSync(process.execPath, [fileURLToPath(new URL("../../api/node_modules/vitest/vitest.mjs", import.meta.url)),
-    "run", "src/routes/visitorMessageRoutes.test.ts", "src/routes/visitTrackRoutes.test.ts"], {
+    "run", "src/routes/visitorMessageRoutes.test.ts", "src/routes/visitTrackRoutes.test.ts", "src/routes/labRequestRoutes.test.ts"], {
     cwd: fileURLToPath(new URL("../../api/", import.meta.url)), env: process.env, encoding: "utf8", stdio: "pipe",
   });
   console.log(integration);

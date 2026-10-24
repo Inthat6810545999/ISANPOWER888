@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:contracts": "node --test scripts/request-status.test.mjs scripts/visitor-track.test.mjs",
+    "test:contracts": "node --test scripts/request-status.test.mjs scripts/visitor-request.test.mjs scripts/visitor-track.test.mjs",
     "test:tracking-browser": "node --test --test-concurrency=1 scripts/visitor-track.browser.test.mjs",
     "test:public-message-browser": "node --test scripts/public-message.browser.test.mjs",
     "test:public-message-live": "node --import ../api/node_modules/tsx/dist/loader.mjs --test scripts/public-message.live.test.mjs",
