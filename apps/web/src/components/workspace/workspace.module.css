@@ -127,6 +127,9 @@
 .formFooter > span { font-size: 9px; color: #7a827c; }
 .formFooter > div { display: flex; gap: 10px; }
 .error { color: #973c2e; background: #f7e6df; padding: 10px; font-size: 12px; }
+.staleWarning { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; color: #8a5a22; background: #f8efdf; border: 1px solid #e4d2b2; padding: 12px 14px; border-radius: 3px; font-size: 12px; margin-bottom: 16px; }
+.statusStack { display: grid; gap: 5px; justify-items: start; }
+.approvalBadge { display: inline-flex; align-items: center; background: #f4ded8; color: #973c2e; border: 1px solid #e3bdb3; padding: 4px 8px; border-radius: 2px; white-space: nowrap; font-size: 10px; font-weight: 600; }
 .detailBody { padding: 28px 32px; }
 .description { white-space: pre-wrap; overflow-wrap: anywhere; margin: 22px 0; }
 .detailGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
