@@ -45,7 +45,7 @@ test("real API + isolated PostgreSQL: Manager save -> fresh Visitor lookup", { t
     cwd: fileURLToPath(new URL("../../api/", import.meta.url)), env: process.env, stdio: "pipe",
   });
   const integration = execFileSync(process.execPath, [fileURLToPath(new URL("../../api/node_modules/vitest/vitest.mjs", import.meta.url)),
-    "run", "src/routes/visitorMessageRoutes.test.ts", "src/routes/visitTrackRoutes.test.ts"], {
+    "run", "src/routes/visitorMessageRoutes.test.ts", "src/routes/visitTrackRoutes.test.ts", "src/routes/labRequestRoutes.test.ts"], {
     cwd: fileURLToPath(new URL("../../api/", import.meta.url)), env: process.env, encoding: "utf8", stdio: "pipe",
   });
   console.log(integration);
