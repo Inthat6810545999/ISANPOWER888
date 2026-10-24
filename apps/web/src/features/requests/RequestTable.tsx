@@ -17,9 +17,16 @@ function formatDate(value: string) {
   return `${date.getUTCDate()} ${MONTH_LABELS[date.getUTCMonth()]}`;
 }
 
+/** Approval and work progress are independent fields. A rejected request keeps
+ *  status "pending", so a quiet note under a "Pending" badge reads as "still waiting"
+ *  rather than "refused"; rejection gets its own badge and both are labelled. */
 export function StatusBadge({ request }: { request: WorkspaceRequest }) {
-  return <div><span className={styles.status} data-status={request.status}>● {STATUSES[request.status]}</span>
-    {request.approvalStatus !== "not_required" && <small className={styles.approvalNote} data-approval-status={request.approvalStatus}>Approval: {APPROVAL_LABELS[request.approvalStatus]}</small>}
+  const rejected = request.approvalStatus === "rejected";
+  return <div className={styles.statusStack}>
+    <span className={styles.status} data-status={request.status}>● Work: {STATUSES[request.status]}</span>
+    {request.approvalStatus !== "not_required" && (rejected
+      ? <span className={styles.approvalBadge} data-approval-status={request.approvalStatus}>● Approval: {APPROVAL_LABELS[request.approvalStatus]}</span>
+      : <small className={styles.approvalNote} data-approval-status={request.approvalStatus}>Approval: {APPROVAL_LABELS[request.approvalStatus]}</small>)}
   </div>;
 }
 

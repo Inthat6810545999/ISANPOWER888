@@ -5,14 +5,16 @@ import styles from "@/components/workspace/workspace.module.css";
 import { RequestTable } from "@/features/requests/RequestTable";
 import { RequestsSync } from "@/features/requests/RequestsSync";
 import { useRequests } from "@/features/requests/RequestsProvider";
+import { RequestsState } from "@/features/requests/RequestsState";
 import type { WorkspaceRequest } from "@/features/requests/types";
 import type { TaAction } from "@/lib/api";
 import { isActiveStatus } from "@/lib/request-status";
 
 type Scope = "pending" | "mine" | "all";
+const LABELS: Record<TaAction["action"], string> = { claim: "Assigning", start: "Starting", close: "Closing" };
 export function TaQueue() {
   const [scope, setScope] = useState<Scope>("pending");
-  const { user, requests, taAction, loading, error } = useRequests();
+  const { user, requests, taAction, loading, error, refresh, refreshing } = useRequests();
   const [busy, setBusy] = useState("");
   const lock = useRef(false);
   const [actionError, setActionError] = useState("");
@@ -27,7 +29,11 @@ export function TaQueue() {
       await taAction(request.id, payload);
       if (payload.action === "claim") setScope("mine");
       if (payload.action === "close") setScope("all");
-    } catch (err) { setActionError(err instanceof Error ? err.message : "Unable to save this change."); }
+    } catch (err) {
+      // Name the request: the queue can hold several, and the buttons re-enable together.
+      const reason = err instanceof Error ? err.message : "Unable to save this change.";
+      setActionError(`${LABELS[payload.action]} "${request.title}" did not save. ${reason}`);
+    }
     finally { lock.current = false; setBusy(""); }
   }
 
@@ -46,12 +52,13 @@ export function TaQueue() {
   return <>
     <PageHeading title="TA Queue" description="Accept approved requests for yourself, then start and complete your own work." showNewRequest={false} />
     <RequestsSync />
-    {actionError && <p className={styles.error} role="alert">{actionError}</p>}
+    {actionError && <p className={styles.error} role="alert">{actionError} You can try again below.</p>}
     <div className={styles.scopeSwitch} role="group" aria-label="Queue view">
       <button aria-pressed={scope === "pending"} onClick={() => setScope("pending")}>Ready to accept <span>{pending.length}</span></button>
       <button aria-pressed={scope === "mine"} onClick={() => setScope("mine")}>Assigned to me <span>{mine.length}</span></button>
       <button aria-pressed={scope === "all"} onClick={() => setScope("all")}>All requests <span>{requests.length}</span></button>
     </div>
-    {!loading && (!error || requests.length > 0) && <RequestTable key={scope} title={scope === "pending" ? "Approved requests ready to accept" : scope === "mine" ? "Assigned to me" : "All requests"} requests={visible} renderRowActions={rowAction} />}
+    <RequestsState loading={loading} error={error} hasData={requests.length > 0} onRetry={() => void refresh()} retrying={refreshing} />
+    {(requests.length > 0 || (!loading && !error)) && <RequestTable key={scope} title={scope === "pending" ? "Approved requests ready to accept" : scope === "mine" ? "Assigned to me" : "All requests"} requests={visible} renderRowActions={rowAction} />}
   </>;
 }
