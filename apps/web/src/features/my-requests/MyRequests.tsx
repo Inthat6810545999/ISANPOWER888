@@ -12,6 +12,6 @@ export function MyRequests() {
     <PageHeading title="My requests" description="Every request, its owner, and what happens next." />
     <RequestsSync />
     <RequestsState loading={loading} error={error} hasData={requests.length > 0} onRetry={() => void refresh()} retrying={refreshing} />
-    {(requests.length > 0 || (!loading && !error)) && <RequestTable title="My requests" requests={requests} />}
+    {requests.length > 0 && <RequestTable title="My requests" requests={requests} />}
   </>;
 }

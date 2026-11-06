@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import shared from "@/components/workspace/workspace.module.css";
+import { StatusBadge } from "@/components/workspace/StatusBadge";
 import styles from "../visitor-request/visitor.module.css";
 import { readPublicVisit, requestedDate, REVIEW_LABELS, scheduleNote, SLOT_LABELS, WORK_LABELS, type PublicVisit } from "./contract";
 
@@ -84,8 +85,8 @@ export function VisitorTrack() {
       {state.kind === "found" && <section aria-label="Visit request result">
         <h2>{state.visit.approvalStatus === "rejected" ? "Request declined" : "Visit request found"}</h2>
         <dl className={styles.summary}>
-          <dt>Review status</dt><dd>{REVIEW_LABELS[state.visit.approvalStatus]}</dd>
-          <dt>Request status</dt><dd>{WORK_LABELS[state.visit.status]}</dd>
+          <dt>Review status</dt><dd><StatusBadge kind="approval" status={state.visit.approvalStatus} label={REVIEW_LABELS[state.visit.approvalStatus]} /></dd>
+          <dt>Request status</dt><dd><StatusBadge status={state.visit.status} label={WORK_LABELS[state.visit.status]} /></dd>
           <dt>Requested date</dt><dd>{requestedDate(state.visit.visitDate)}</dd>
           <dt>Requested time</dt><dd>{SLOT_LABELS[state.visit.timeSlot]} · Thailand time (Asia/Bangkok)</dd>
           {state.visit.publicMessage && <><dt>Message from the lab</dt><dd>{state.visit.publicMessage}</dd></>}

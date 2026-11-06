@@ -3,9 +3,9 @@
 import { useId, useState, type ReactNode } from "react";
 import { Dialog } from "@/components/workspace/Dialog";
 import { Icon } from "@/components/workspace/Icon";
+import { StatusBadge } from "@/components/workspace/StatusBadge";
 import styles from "@/components/workspace/workspace.module.css";
 import { CATEGORIES, PRIORITIES, STATUSES, type WorkspaceRequest } from "./types";
-import { APPROVAL_LABELS } from "@/lib/request-status";
 import { PublicMessage, VisitorDetails } from "./VisitorDetails";
 
 // Fixed labels avoid Intl locale-data differences between server and browser (Sep/Sept).
@@ -18,15 +18,11 @@ function formatDate(value: string) {
 }
 
 /** Approval and work progress are independent fields. A rejected request keeps
- *  status "pending", so a quiet note under a "Pending" badge reads as "still waiting"
- *  rather than "refused"; rejection gets its own badge and both are labelled. */
-export function StatusBadge({ request }: { request: WorkspaceRequest }) {
-  const rejected = request.approvalStatus === "rejected";
+ *  status "pending", so both are labelled and shown side by side. */
+export function RequestStatusBadges({ request }: { request: WorkspaceRequest }) {
   return <div className={styles.statusStack}>
-    <span className={styles.status} data-status={request.status}>● Work: {STATUSES[request.status]}</span>
-    {request.approvalStatus !== "not_required" && (rejected
-      ? <span className={styles.approvalBadge} data-approval-status={request.approvalStatus}>● Approval: {APPROVAL_LABELS[request.approvalStatus]}</span>
-      : <small className={styles.approvalNote} data-approval-status={request.approvalStatus}>Approval: {APPROVAL_LABELS[request.approvalStatus]}</small>)}
+    <StatusBadge status={request.status} prefix="Work" />
+    {request.approvalStatus !== "not_required" && <StatusBadge kind="approval" status={request.approvalStatus} prefix="Approval" />}
   </div>;
 }
 
@@ -94,7 +90,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
             <td><div className={styles.requestCell}><span className={styles.categoryIcon}><Icon name={request.category === "access" ? "shield" : request.category === "general" ? "requests" : "flask"} /></span>
               <div><button className={styles.requestTitle} onClick={() => setSelectedId(request.id)}>{request.title}</button>
                 <p>{request.id} · {CATEGORIES[request.category]} · {request.requester.name}{request.source === "visitor" && " · External visitor"}</p></div></div></td>
-            <td><StatusBadge request={request} /></td>
+            <td><RequestStatusBadges request={request} /></td>
             <td><span className={styles.priority} data-priority={request.priority}>▸ {request.priority}</span></td>
             <td>{request.assignee ? <span className={styles.assignee}><span className={styles.avatar}>{request.assignee.initials}</span>{request.assignee.name}</span> : "Unassigned"}</td>
             <td className={styles.date}>{formatDate(request.neededBy)}</td>
@@ -113,7 +109,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
     </section>
     {selected && <Dialog titleId={detailTitle} onClose={() => setSelectedId(null)}>
       <div className={styles.dialogHeader}><p className={styles.eyebrow}>{selected.id} · REQUEST DETAILS</p><h2 id={detailTitle}>{selected.title}</h2></div>
-      <div className={styles.detailBody}><StatusBadge request={selected} /><p className={styles.description}>{selected.description}</p>
+      <div className={styles.detailBody}><RequestStatusBadges request={selected} /><p className={styles.description}>{selected.description}</p>
         <dl className={styles.detailGrid}>
           <div><dt>Requested by</dt><dd>{selected.requester.name}</dd></div><div><dt>Assigned to</dt><dd>{selected.assignee?.name ?? "Unassigned"}</dd></div>
           <div><dt>Category</dt><dd>{CATEGORIES[selected.category]}</dd></div><div><dt>Priority</dt><dd className={styles.priority}>{selected.priority}</dd></div>
@@ -122,7 +118,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
         <VisitorDetails request={selected} />
         <PublicMessage request={selected} />
         {selected.decision && <section className={styles.decisionRecord}>
-          <h3>Approval decision: {APPROVAL_LABELS[selected.decision.outcome]}</h3>
+          <h3>Approval decision: <StatusBadge kind="approval" status={selected.decision.outcome} /></h3>
           <p className={styles.description}>{selected.decision.reason}</p>
           <p>Reviewed by {selected.decision.reviewerName} ({selected.decision.reviewerEmail})</p>
           <p>{new Date(selected.decision.reviewedAt).toLocaleString()}</p>
@@ -132,7 +128,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
           <h3>Previous decisions</h3>
           <p>These decisions were superseded when open requests were returned for approval. They do not authorize current work.</p>
           {selected.decisionHistory.map((decision) => <div key={decision.id}>
-            <p>{APPROVAL_LABELS[decision.outcome]} — {decision.reason}</p>
+            <p><StatusBadge kind="approval" status={decision.outcome} /> — {decision.reason}</p>
             <p>Reviewed by {decision.reviewerName} ({decision.reviewerEmail}) · {new Date(decision.reviewedAt).toLocaleString()}</p>
           </div>)}
         </section>}

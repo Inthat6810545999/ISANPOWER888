@@ -31,25 +31,29 @@ export function RequestsProvider({ children, user, scope = "member" }: { childre
   const [refreshing, setRefreshing] = useState(false);
   const generation = useRef(0);
   const active = useRef(true);
-  const fetching = useRef(false);
+  const inFlight = useRef<Promise<void> | null>(null);
   const path = usePathname();
 
-  const refresh = useCallback(async () => {
-    if (fetching.current) return;
-    fetching.current = true;
+  // A manual refresh that lands while the 4-second poll is mid-flight joins that
+  // request, so the button keeps its loading state until the list really arrives.
+  const refresh = useCallback(() => {
+    if (inFlight.current) return inFlight.current;
     const version = generation.current;
     setRefreshing(true);
-    try {
-      const result = await loadRequests(scope);
-      if (!active.current || version !== generation.current) return;
-      if (result.ok) { setRequests(result.data); setError(""); }
-      else { setRequests([]); setError(result.error); }
-    } catch {
-      if (active.current && version === generation.current) setError("Unable to refresh requests. Check your connection and retry.");
-    } finally {
-      fetching.current = false;
-      if (active.current) { setLoading(false); setRefreshing(false); }
-    }
+    const run = (async () => {
+      try {
+        const result = await loadRequests(scope);
+        if (!active.current || version !== generation.current) return;
+        if (result.ok) { setRequests(result.data); setError(""); }
+        else { setRequests([]); setError(result.error); }
+      } catch {
+        if (active.current && version === generation.current) setError("Unable to refresh requests. Check your connection and retry.");
+      } finally {
+        if (active.current) { setLoading(false); setRefreshing(false); }
+      }
+    })();
+    inFlight.current = run.finally(() => { inFlight.current = null; });
+    return inFlight.current;
   }, [scope]);
 
   useEffect(() => {
