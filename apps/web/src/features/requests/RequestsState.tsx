@@ -5,7 +5,7 @@ import styles from "@/components/workspace/workspace.module.css";
 
 /** The list pages previously rendered nothing while loading and nothing on a failed
  *  load, so a broken API looked identical to an empty queue. This renders the
- *  loading and error states, and warns when a stale list is still on screen. */
+ *  loading, error and empty states, and warns when a stale list is still on screen. */
 export function RequestsState({ loading, error, hasData, onRetry, retrying }: {
   loading: boolean;
   error: string;
@@ -32,6 +32,16 @@ export function RequestsState({ loading, error, hasData, onRetry, retrying }: {
         <button className={styles.secondaryButton} type="button" disabled={retrying} onClick={onRetry}>
           {retrying ? "Retrying…" : "Try again"}
         </button>
+      </div>
+    </section>;
+  }
+
+  if (!loading && !error && !hasData) {
+    return <section className={styles.tableCard}>
+      <div className={styles.empty} role="status">
+        <Icon name="requests" />
+        <h3>No requests yet</h3>
+        <p>New requests will appear here as soon as they are submitted.</p>
       </div>
     </section>;
   }

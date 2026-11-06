@@ -9,6 +9,7 @@ export function RequestsSync() {
   const [manualRefreshing, setManualRefreshing] = useState(false);
 
   async function handleRefresh() {
+    if (manualRefreshing) return;
     setManualRefreshing(true);
     try {
       await refresh();
@@ -19,6 +20,9 @@ export function RequestsSync() {
 
   return <div className={styles.syncBar}>
     <span role={error ? "alert" : "status"}>{error || (loading ? "Loading requests…" : "Live requests · Updates every 4 seconds")}{error && <> · <a href="/login">Sign in</a></>}</span>
-    <button className={styles.secondaryButton} disabled={manualRefreshing} onClick={() => void handleRefresh()}>{manualRefreshing ? "Refreshing…" : "Refresh requests"}</button>
+    <button className={styles.secondaryButton} type="button" disabled={manualRefreshing} aria-busy={manualRefreshing} onClick={() => void handleRefresh()}>
+      {manualRefreshing && <span className={styles.spinner} data-testid="refresh-spinner" aria-hidden="true" />}
+      {manualRefreshing ? "Refreshing…" : "Refresh requests"}
+    </button>
   </div>;
 }

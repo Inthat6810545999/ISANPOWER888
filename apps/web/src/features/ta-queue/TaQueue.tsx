@@ -59,6 +59,6 @@ export function TaQueue() {
       <button aria-pressed={scope === "all"} onClick={() => setScope("all")}>All requests <span>{requests.length}</span></button>
     </div>
     <RequestsState loading={loading} error={error} hasData={requests.length > 0} onRetry={() => void refresh()} retrying={refreshing} />
-    {(requests.length > 0 || (!loading && !error)) && <RequestTable key={scope} title={scope === "pending" ? "Approved requests ready to accept" : scope === "mine" ? "Assigned to me" : "All requests"} requests={visible} renderRowActions={rowAction} />}
+    {requests.length > 0 && <RequestTable key={scope} title={scope === "pending" ? "Approved requests ready to accept" : scope === "mine" ? "Assigned to me" : "All requests"} requests={visible} renderRowActions={rowAction} />}
   </>;
 }
