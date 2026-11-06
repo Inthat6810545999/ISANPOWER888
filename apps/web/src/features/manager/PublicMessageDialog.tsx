@@ -5,7 +5,7 @@ import { Dialog } from "@/components/workspace/Dialog";
 import styles from "@/components/workspace/workspace.module.css";
 import { VisitorDetails } from "@/features/requests/VisitorDetails";
 import { PublicMessageMetadata } from "@/features/requests/PublicMessageMetadata";
-import { StatusBadge } from "@/features/requests/RequestTable";
+import { RequestStatusBadges } from "@/features/requests/RequestTable";
 import type { WorkspaceRequest } from "@/features/requests/types";
 import { savePublicMessage, reloadPublicMessageRequest } from "./public-message-actions";
 import { canEditPublicMessage } from "./public-message-rules";
@@ -65,7 +65,7 @@ export function PublicMessageDialog({ initial, onClose, onSaved }: {
   return <Dialog titleId={titleId} onClose={() => { if (!lock.current) onClose(); }}>
     <div className={styles.dialogHeader}><p className={styles.eyebrow}>REQUEST DETAILS</p><h2 id={titleId}>{request.title}</h2></div>
     <div className={styles.detailBody}>
-      <StatusBadge request={request} />
+      <RequestStatusBadges request={request} />
       <VisitorDetails request={request} />
       <section className={styles.decisionRecord}>
         <h3>Public message to Visitor</h3>

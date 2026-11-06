@@ -2,7 +2,8 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import { useRequests } from "@/features/requests/RequestsProvider";
 import { RequestsSync } from "@/features/requests/RequestsSync";
-import { RequestTable, StatusBadge } from "@/features/requests/RequestTable";
+import { RequestsState } from "@/features/requests/RequestsState";
+import { RequestTable, RequestStatusBadges } from "@/features/requests/RequestTable";
 import { CATEGORIES, type WorkspaceRequest } from "@/features/requests/types";
 import { PublicMessage, VisitorDetails } from "@/features/requests/VisitorDetails";
 import { PageHeading } from "@/components/workspace/PageHeading";
@@ -13,7 +14,7 @@ import { canEditPublicMessage } from "./public-message-rules";
 
 function needsReview(r: WorkspaceRequest) { return r.requiresApproval && ["submitted", "under_review"].includes(r.approvalStatus) && !["closed", "cancelled"].includes(r.status); }
 export function ManagerApprovals() {
-  const { requests, review, loading, error, user, refresh } = useRequests();
+  const { requests, review, loading, error, user, refresh, refreshing } = useRequests();
   const [messageRequest, setMessageRequest] = useState<WorkspaceRequest | null>(null);
   const [all, setAll] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -40,13 +41,14 @@ export function ManagerApprovals() {
       <button aria-pressed={!all} onClick={() => setAll(false)}>Awaiting review <span>{requests.filter(needsReview).length}</span></button>
       <button aria-pressed={all} onClick={() => setAll(true)}>All requests <span>{requests.length}</span></button>
     </div>
-    {!loading && (!error || requests.length > 0) && <RequestTable title={all ? "All requests" : "Awaiting review"} requests={all ? requests : requests.filter(needsReview)} renderRowActions={(r) => needsReview(r) ? <button className={styles.secondaryButton} onClick={() => { setSelectedId(r.id); setReviewError(""); }}>Review</button>
+    <RequestsState loading={loading} error={error} hasData={requests.length > 0} onRetry={() => void refresh()} retrying={refreshing} />
+    {requests.length > 0 && <RequestTable title={all ? "All requests" : "Awaiting review"} requests={all ? requests : requests.filter(needsReview)} renderRowActions={(r) => needsReview(r) ? <button className={styles.secondaryButton} onClick={() => { setSelectedId(r.id); setReviewError(""); }}>Review</button>
       : user.role === "lab_manager" && user.membershipStatus === "APPROVED" && canEditPublicMessage(r)
         ? <button className={styles.secondaryButton} onClick={() => setMessageRequest(r)}>Public message</button> : null} />}
     {messageRequest && <PublicMessageDialog key={messageRequest.id} initial={messageRequest} onClose={() => setMessageRequest(null)} onSaved={() => { void refresh(); }} />}
     {selected && <Dialog titleId={titleId} onClose={() => { if (!busy) setSelectedId(null); }}>
       <div className={styles.dialogHeader}><p className={styles.eyebrow}>REQUEST REVIEW</p><h2 id={titleId}>{selected.title}</h2></div>
-      <div className={styles.detailBody}><StatusBadge request={selected} /><p className={styles.description}>{selected.description}</p>
+      <div className={styles.detailBody}><RequestStatusBadges request={selected} /><p className={styles.description}>{selected.description}</p>
         <dl className={styles.detailGrid}>
           <div><dt>Requester</dt><dd>{selected.requester.name}</dd></div><div><dt>Assigned to</dt><dd>{selected.assignee?.name ?? "Unassigned"}</dd></div>
           <div><dt>Category</dt><dd>{CATEGORIES[selected.category]}</dd></div><div><dt>Priority</dt><dd>{selected.priority}</dd></div>

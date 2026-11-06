@@ -74,12 +74,13 @@
 .requestTitle { color: var(--ink); font-size: 12px !important; font-weight: bold !important; text-align: left; line-height: 1.6; }
 .requestTitle:hover { text-decoration: underline; text-underline-offset: 3px; }
 .requestCell p { font-size: 10px; margin-top: 7px; }
-.status { display: inline-flex; align-items: center; background: #e9e3d5; color: #796849; padding: 5px 9px; border-radius: 2px; white-space: nowrap; font-size: 11px; }
-.status[data-status="assigned"] { background: #e8e1ef; color: #756087; }
-.status[data-status="in_progress"] { background: #e2e9e3; color: #536f5d; }
-.status[data-status="closed"] { background: #e0e9d9; color: #536e46; }
-.status[data-status="cancelled"] { background: #ece6e3; color: #79655e; }
-.approvalNote { color: #97723b; display: block; font-size: 9px; margin-top: 5px; white-space: nowrap; }
+.statusBadge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid; border-radius: 2px; white-space: nowrap; font-size: 11px; font-weight: 600; }
+.statusBadge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.statusBadge[data-tone="pending"] { background: #f8ebcf; color: #8a5414; border-color: #e8cf9c; }
+.statusBadge[data-tone="success"] { background: #e1edda; color: #3d6a33; border-color: #c3d9b6; }
+.statusBadge[data-tone="danger"] { background: #f4ded8; color: #973c2e; border-color: #e3bdb3; }
+.statusBadge[data-tone="neutral"] { background: #ebe8e2; color: #625e56; border-color: #d8d3c9; }
+.statusStack .statusBadge[data-kind="approval"] { font-size: 10px; }
 .priority { text-transform: capitalize; white-space: nowrap; }
 .priority[data-priority="high"] { color: #9a6329; }
 .priority[data-priority="low"] { color: #617254; }
@@ -127,9 +128,10 @@
 .formFooter > span { font-size: 9px; color: #7a827c; }
 .formFooter > div { display: flex; gap: 10px; }
 .error { color: #973c2e; background: #f7e6df; padding: 10px; font-size: 12px; }
+.fieldError { color: #973c2e; font-size: 11px; line-height: 1.5; }
+.field [aria-invalid="true"] { border-color: #973c2e; }
 .staleWarning { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; color: #8a5a22; background: #f8efdf; border: 1px solid #e4d2b2; padding: 12px 14px; border-radius: 3px; font-size: 12px; margin-bottom: 16px; }
 .statusStack { display: grid; gap: 5px; justify-items: start; }
-.approvalBadge { display: inline-flex; align-items: center; background: #f4ded8; color: #973c2e; border: 1px solid #e3bdb3; padding: 4px 8px; border-radius: 2px; white-space: nowrap; font-size: 10px; font-weight: 600; }
 .detailBody { padding: 28px 32px; }
 .description { white-space: pre-wrap; overflow-wrap: anywhere; margin: 22px 0; }
 .detailGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -200,6 +202,9 @@
 
 .syncBar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; font-size: .85rem; }
 .syncBar [role=alert] { color: #9b3328; flex: 1; }
+.spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; flex-shrink: 0; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } }
 .sessionBar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 24px; font-size: 12px; flex-wrap: wrap; }
 .loginPage { --paper: #faf7f0; --line: #d7cab7; --ink: #34271f; --muted: #776d60; min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: #f3eee5; color: var(--ink); font-family: monospace; }
 .loginCard { width: min(100%, 540px); background: #faf7f0; border: 1px solid #d7cab7; }

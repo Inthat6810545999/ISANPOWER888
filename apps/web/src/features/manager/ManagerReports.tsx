@@ -3,11 +3,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { Report } from "@/lib/api";
 import { loadReport } from "@/features/requests/actions";
 import { PageHeading } from "@/components/workspace/PageHeading";
-import { STATUS_LABELS, APPROVAL_LABELS } from "@/lib/request-status";
+import { StatusBadge } from "@/components/workspace/StatusBadge";
 import { CATEGORIES } from "@/features/requests/types";
 import styles from "@/components/workspace/workspace.module.css";
 
-const labels: Record<string, string> = { ...STATUS_LABELS, ...APPROVAL_LABELS, ...CATEGORIES };
+const categoryLabels: Record<string, string> = CATEGORIES;
 export function ManagerReports() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState("");
@@ -57,7 +57,7 @@ export function ManagerReports() {
         <div><small>Closed</small><strong>{count(report.byStatus, "closed")}</strong></div>
       </div>
       <div className={styles.reportGroups}>{([["Work status", report.byStatus], ["Approval status", report.byApproval], ["Category", report.byType]] as const).map(([title, entries]) => <section className={styles.tableCard} key={title}>
-        <h2>{title}</h2><table className={styles.table}><thead><tr><th>Value</th><th>Requests</th></tr></thead><tbody>{entries.map((entry) => <tr key={entry.label}><td>{labels[entry.label] ?? entry.label}</td><td>{entry.count}</td></tr>)}</tbody></table>
+        <h2>{title}</h2><table className={styles.table}><thead><tr><th>Value</th><th>Requests</th></tr></thead><tbody>{entries.map((entry) => <tr key={entry.label}><td>{title === "Category" ? categoryLabels[entry.label] ?? entry.label : <StatusBadge kind={title === "Approval status" ? "approval" : "work"} status={entry.label} />}</td><td>{entry.count}</td></tr>)}</tbody></table>
         {!entries.length && <p>No requests in this period.</p>}
       </section>)}</div>
     </>}
