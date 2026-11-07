@@ -11,7 +11,7 @@ import { tokenHash } from "../auth/session.js";
 const app = createApp("http://localhost:3000");
 const password = "Only-for-isolated-tests-123!";
 const passwordHash = await hashPassword(password);
-const validRequest = { title: "Book microscope room B2", type: "space" };
+const validRequest = { title: "Book microscope room B2", type: "space", description: "Prepare the room for a lab session.", priority: "medium" } as const;
 type Account = { id: string; email: string; name: string; role: UserRole; token: string };
 let member: Account, otherMember: Account, ta: Account, otherTa: Account, manager: Account;
 async function account(name: string, role: UserRole): Promise<Account> {
@@ -295,5 +295,33 @@ describe("US-6 request history", () => {
     expect(saved.history).toHaveLength(1);
     expect(saved.status).toBe("pending");
     expect(saved.decision.outcome).toBe("rejected");
+  });
+});
+
+
+describe("US-1 required request fields", () => {
+  it.each([
+    ["title", undefined], ["title", null], ["title", " \n\t "], ["title", 7], ["title", "x".repeat(201)],
+    ["description", undefined], ["description", null], ["description", ""], ["description", " \n\t "],
+    ["description", 7], ["description", "x".repeat(4001)],
+    ["type", undefined], ["type", null], ["type", ""], ["type", "toString"], ["type", "industry_collaboration"],
+    ["priority", undefined], ["priority", null], ["priority", ""], ["priority", "urgent"], ["priority", 7],
+  ])("rejects invalid %s (%j) without saving a request or history", async (field, value) => {
+    const result = await request(app).post("/api/requests").set(auth(member)).send({ ...validRequest, [field as string]: value }).expect(400);
+    expect(result.body.error).toBeTruthy();
+    expect(await prisma.labRequest.count()).toBe(0);
+    expect(await prisma.requestHistory.count()).toBe(0);
+  });
+
+  it.each(["low", "medium", "high"])("accepts explicit %s priority and trims text at the form limits", async priority => {
+    const result = await request(app).post("/api/requests").set(auth(member)).send({
+      title: `  ${"t".repeat(200)}  `, description: ` \n${"d".repeat(4000)}\n `,
+      type: "equipment", priority, location: `  ${"l".repeat(200)}  `,
+    }).expect(201);
+    expect(result.body.data).toMatchObject({ title: "t".repeat(200), description: "d".repeat(4000), location: "l".repeat(200),
+      priority, status: "pending", approvalStatus: "submitted", requesterEmail: member.email });
+    expect(result.body.data.history).toHaveLength(1);
+    const queue = (await request(app).get("/api/requests").set(auth(ta)).expect(200)).body.data;
+    expect(queue.map((row: { id: string }) => row.id)).toContain(result.body.data.id);
   });
 });
