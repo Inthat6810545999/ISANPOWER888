@@ -43,3 +43,14 @@ export function requestedDate(date: string) {
   return new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", day: "numeric", month: "long", year: "numeric" })
     .format(new Date(`${date}T00:00:00+07:00`));
 }
+
+export type PublicCollaboration = { kind: "industry_collaboration"; status: RequestStatus; approvalStatus: ApprovalStatus };
+/** Discard unexpected fields even if an upstream service includes them. */
+export function readPublicCollaboration(body: unknown): PublicCollaboration | null {
+  if (!body || typeof body !== "object" || !("data" in body)) return null;
+  const d = body.data;
+  if (!d || typeof d !== "object" || !("kind" in d) || d.kind !== "industry_collaboration"
+    || !("status" in d) || !REQUEST_STATUSES.includes(d.status as RequestStatus)
+    || !("approvalStatus" in d) || !APPROVAL_STATUSES.includes(d.approvalStatus as ApprovalStatus)) return null;
+  return { kind: "industry_collaboration", status: d.status as RequestStatus, approvalStatus: d.approvalStatus as ApprovalStatus };
+}

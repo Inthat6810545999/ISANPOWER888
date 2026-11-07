@@ -1,10 +1,10 @@
 import express, { Router, type ErrorRequestHandler, type RequestHandler } from "express";
 import { HttpError } from "../middleware/errorHandler.js";
-import { findPublicVisit } from "../visits/contract.js";
+import { findPublicVisit, findPublicCollaboration } from "../visits/contract.js";
 import { publicRateLimit } from "../visits/rateLimit.js";
 
 /** Mounted before global parsers/logging: every response is private and sanitized. */
-export function createVisitTrackRouter(corsMiddleware: RequestHandler) {
+export function createVisitTrackRouter(corsMiddleware: RequestHandler, kind: "visitor" | "industry_collaboration" = "visitor") {
   const router = Router();
   router.use((_req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
   router.use(corsMiddleware);
@@ -17,7 +17,7 @@ export function createVisitTrackRouter(corsMiddleware: RequestHandler) {
     next();
   });
   // Count invalid bodies too, before content-type checks and JSON parsing.
-  router.use(publicRateLimit("visit-track", 10, 60_000));
+  router.use(publicRateLimit(kind === "visitor" ? "visit-track" : "collaboration-track", 10, 60_000));
   router.use((req, res, next) => {
     if (!req.is("application/json")) {
       res.status(415).json({ error: "Expected application/json." });
@@ -30,6 +30,12 @@ export function createVisitTrackRouter(corsMiddleware: RequestHandler) {
     const body: unknown = req.body;
     if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some(key => key !== "code")) {
       res.status(400).json({ error: "Invalid tracking request." });
+      return;
+    }
+    if (kind === "industry_collaboration") {
+      const found = await findPublicCollaboration("code" in body ? body.code : undefined);
+      if (!found) { res.status(404).json({ error: "Collaboration request not found." }); return; }
+      res.json({ data: { kind: "industry_collaboration", status: found.status, approvalStatus: found.approvalStatus } });
       return;
     }
     const found = await findPublicVisit("code" in body ? body.code : undefined);
@@ -55,7 +61,7 @@ export function createVisitTrackRouter(corsMiddleware: RequestHandler) {
     if (error instanceof HttpError && error.status === 429) {
       res.status(429).json({ error: "Too many requests. Please try again later." }); return;
     }
-    res.status(503).json({ error: "Visitor service is temporarily unavailable." });
+    res.status(503).json({ error: kind === "visitor" ? "Visitor service is temporarily unavailable." : "Collaboration tracking is temporarily unavailable." });
   };
   router.use(handleError);
   return router;

@@ -43,3 +43,16 @@ export async function findPublicVisit(code: unknown) {
   return { status: found.status, approvalStatus: found.approvalStatus,
     publicMessage: found.publicMessage, visitDate: found.visit.visitDate, timeSlot: found.visit.timeSlot };
 }
+
+/** Collaboration has no visit schedule or public-message channel. */
+export async function findPublicCollaboration(code: unknown) {
+  const parsed = trackingCodeSchema.safeParse(code);
+  if (!parsed.success) return null;
+  const credential = await prisma.visitTrackingCredential.findUnique({
+    where: { codeHash: hashTrackingCode(parsed.data) },
+    select: { request: { select: { source: true, status: true, approvalStatus: true } } },
+  });
+  const found = credential?.request;
+  if (!found || found.source !== "industry_collaboration") return null;
+  return { kind: "industry_collaboration" as const, status: found.status, approvalStatus: found.approvalStatus };
+}

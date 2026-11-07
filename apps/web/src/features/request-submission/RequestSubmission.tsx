@@ -7,7 +7,7 @@ import { Icon } from "@/components/workspace/Icon";
 import { PageHeading } from "@/components/workspace/PageHeading";
 import styles from "@/components/workspace/workspace.module.css";
 import { useRequests } from "@/features/requests/RequestsProvider";
-import { CATEGORIES, PRIORITIES, type Category, type Priority } from "@/features/requests/types";
+import { MEMBER_CATEGORIES as CATEGORIES, PRIORITIES, type Category, type Priority } from "@/features/requests/types";
 import { validateRequestForm, type RequestFormValues } from "./validation";
 
 const EMPTY_FORM: RequestFormValues = { title: "", category: "equipment", priority: "medium", description: "", location: "", neededBy: "" };

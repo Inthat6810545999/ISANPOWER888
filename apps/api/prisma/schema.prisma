@@ -14,6 +14,7 @@ enum RequestType {
   access
   visitor
   general
+  industry_collaboration
 }
 
 enum RequestStatus {
@@ -42,6 +43,7 @@ enum RequestPriority {
 enum RequestSource {
   member
   visitor
+  industry_collaboration
 }
 
 model LabRequest {
@@ -61,6 +63,7 @@ model LabRequest {
   publicMessageUpdatedByEmail String?
   publicMessageUpdatedAt     DateTime?
   visit            VisitDetails?
+  collaboration    IndustryCollaboration?
   tracking         VisitTrackingCredential?
   requesterEmail   String
   assigneeEmail    String?
@@ -136,6 +139,20 @@ model ApprovalDecision {
   supersededAt  DateTime?
   @@index([requestId])
   @@map("approval_decisions")
+}
+
+// Immutable snapshots of the verified TA submitter, separate from the external contact.
+model IndustryCollaboration {
+  requestId String @id
+  request LabRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  organization String
+  contactName String
+  contactEmail String
+  phone String @default("")
+  submittedById String
+  submittedByName String
+  submittedByEmail String
+  @@map("industry_collaborations")
 }
 
 model VisitDetails {

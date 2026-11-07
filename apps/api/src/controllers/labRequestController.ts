@@ -1,11 +1,12 @@
 import type { Request, Response } from "express";
+import { generateTrackingCode, hashTrackingCode } from "../visits/contract.js";
 import { z } from "zod";
 import { prisma } from "../db/connect.js";
-import { APPROVAL_STATUSES, REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES } from "../models/LabRequest.js";
+import { APPROVAL_STATUSES, REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES, MEMBER_REQUEST_TYPES, REQUEST_SOURCES } from "../models/LabRequest.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import { actor, type Actor } from "../auth/session.js";
 
-const includeDecision = { visit: true, decisions: { orderBy: { reviewedAt: "desc" as const } } } as const;
+const includeDecision = { visit: true, collaboration: true, decisions: { orderBy: { reviewedAt: "desc" as const } } } as const;
 function withDecision<T extends { decisions: { supersededAt: Date | null }[] }>(record: T) {
   const { decisions, ...request } = record;
   return { ...request, decision: decisions.find((d) => !d.supersededAt) ?? null,
@@ -13,7 +14,7 @@ function withDecision<T extends { decisions: { supersededAt: Date | null }[] }>(
 }
 const createSchema = z.object({
   title: z.string().trim().min(1).max(200), description: z.string().max(5000).optional(),
-  type: z.enum(REQUEST_TYPES), neededBy: z.coerce.date().optional(),
+  type: z.enum(MEMBER_REQUEST_TYPES), neededBy: z.coerce.date().optional(),
   priority: z.enum(REQUEST_PRIORITIES).default("medium"),
   location: z.string().trim().max(200).default(""),
 }).strict();
@@ -21,6 +22,7 @@ const listQuerySchema = z.object({
   requesterEmail: z.email().transform((v) => v.toLowerCase()).optional(),
   status: z.enum(REQUEST_STATUSES).optional(), approvalStatus: z.enum(APPROVAL_STATUSES).optional(),
   type: z.enum(REQUEST_TYPES).optional(),
+  source: z.enum(REQUEST_SOURCES).optional(),
 }).strict();
 
 export async function listLabRequests(req: Request, res: Response): Promise<void> {
@@ -50,6 +52,31 @@ export async function createLabRequest(req: Request, res: Response): Promise<voi
     requiresApproval: true, approvalStatus: "submitted",
   }, include: includeDecision });
   res.status(201).json({ data: withDecision(created) });
+}
+
+const collaborationSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  organization: z.string().trim().min(1).max(200),
+  contactName: z.string().trim().min(1).max(120),
+  contactEmail: z.string().trim().max(254).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
+  phone: z.string().trim().max(40).refine(v => !v || /^\+?[\d\s().-]{7,40}$/.test(v)).default(""),
+  description: z.string().trim().min(1).max(4000),
+}).strict();
+
+/** TA-only route. Neither identity nor initial workflow state comes from the body. */
+export async function createIndustryCollaboration(req: Request, res: Response): Promise<void> {
+  const { title, description, ...contact } = collaborationSchema.parse(req.body);
+  const ta = actor(res);
+  const trackingCode = generateTrackingCode();
+  const created = await prisma.labRequest.create({ data: {
+    title, description, type: "industry_collaboration", source: "industry_collaboration",
+    requesterEmail: ta.email, status: "pending", requiresApproval: true, approvalStatus: "submitted",
+    tracking: { create: { codeHash: hashTrackingCode(trackingCode) } },
+    priority: "medium", collaboration: { create: {
+      ...contact, submittedById: ta.id, submittedByName: ta.name, submittedByEmail: ta.email,
+    } },
+  }, include: includeDecision }).catch(() => { throw new HttpError(503, "Unable to create collaboration. Please try again later."); });
+  res.status(201).json({ data: withDecision(created), trackingCode });
 }
 
 const publicMessageSchema = z.string().trim().max(2000);

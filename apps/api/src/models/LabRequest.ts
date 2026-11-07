@@ -5,7 +5,11 @@ export const REQUEST_TYPES = [
   "access",
   "visitor",
   "general",
+  "industry_collaboration",
 ] as const;
+
+export const MEMBER_REQUEST_TYPES = ["equipment", "space", "consumable", "access", "visitor", "general"] as const;
+export const REQUEST_SOURCES = ["member", "visitor", "industry_collaboration"] as const;
 
 export const REQUEST_STATUSES = [
   "pending",
