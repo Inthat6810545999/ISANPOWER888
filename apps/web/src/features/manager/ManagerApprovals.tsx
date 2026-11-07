@@ -17,7 +17,8 @@ function needsReview(r: WorkspaceRequest) { return r.requiresApproval && ["submi
 export function ManagerApprovals() {
   const { requests, review, loading, error, user, refresh, refreshing } = useRequests();
   const [messageRequest, setMessageRequest] = useState<WorkspaceRequest | null>(null);
-  const [all, setAll] = useState(false);
+  const [view, setView] = useState<"review" | "all" | "closed">("review");
+  const visible = requests.filter(r => view === "review" ? needsReview(r) : view === "closed" ? r.status === "closed" : true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = requests.find((r) => r.id === selectedId);
   const [busy, setBusy] = useState(false);
@@ -39,11 +40,12 @@ export function ManagerApprovals() {
     <PageHeading title="Request approvals" description="Review the details and record a decision. Work remains in the TA queue." showNewRequest={false} />
     <RequestsSync />
     <div className={styles.scopeSwitch} role="group" aria-label="Approval view">
-      <button aria-pressed={!all} onClick={() => setAll(false)}>Awaiting review <span>{requests.filter(needsReview).length}</span></button>
-      <button aria-pressed={all} onClick={() => setAll(true)}>All requests <span>{requests.length}</span></button>
+      <button aria-pressed={view === "review"} onClick={() => setView("review")}>Awaiting review <span>{requests.filter(needsReview).length}</span></button>
+      <button aria-pressed={view === "all"} onClick={() => setView("all")}>All requests <span>{requests.length}</span></button>
+      <button aria-pressed={view === "closed"} onClick={() => setView("closed")}>Closed history <span>{requests.filter(r => r.status === "closed").length}</span></button>
     </div>
     <RequestsState loading={loading} error={error} hasData={requests.length > 0} onRetry={() => void refresh()} retrying={refreshing} />
-    {requests.length > 0 && <RequestTable title={all ? "All requests" : "Awaiting review"} requests={all ? requests : requests.filter(needsReview)} renderRowActions={(r) => needsReview(r) ? <button className={styles.secondaryButton} onClick={() => { setSelectedId(r.id); setReviewError(""); }}>Review</button>
+    {requests.length > 0 && <RequestTable key={view} title={view === "closed" ? "Closed request history" : view === "all" ? "All requests" : "Awaiting review"} requests={visible} renderRowActions={(r) => needsReview(r) ? <button className={styles.secondaryButton} onClick={() => { setSelectedId(r.id); setReviewError(""); }}>Review</button>
       : user.role === "lab_manager" && user.membershipStatus === "APPROVED" && canEditPublicMessage(r)
         ? <button className={styles.secondaryButton} onClick={() => setMessageRequest(r)}>Public message</button> : null} />}
     {messageRequest && <PublicMessageDialog key={messageRequest.id} initial={messageRequest} onClose={() => setMessageRequest(null)} onSaved={() => { void refresh(); }} />}

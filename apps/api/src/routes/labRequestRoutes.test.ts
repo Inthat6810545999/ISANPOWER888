@@ -229,3 +229,71 @@ describe("Manager reports", () => {
     await request(app).get("/api/requests/reports?from=2026-02-01&to=2026-01-01").set(auth(manager)).expect(400);
   });
 });
+
+describe("US-6 request history", () => {
+  it("persists the complete owner workflow and snapshots actors without changing approval history", async () => {
+    const r = await create();
+    expect(r.history).toHaveLength(1);
+    expect(r.history[0]).toMatchObject({ action: "created", fromStatus: null, toStatus: "pending", actorId: member.id, actorName: member.name, actorRole: "member" });
+    await action(r.id, ta, "claim").expect(409);
+    await review(r.id, manager).expect(200);
+    const claims = await Promise.all([action(r.id, ta, "claim"), action(r.id, ta, "claim")]);
+    expect(claims.map(r => r.status).sort()).toEqual([200, 409]);
+    await request(app).patch(`/api/requests/${r.id}/status`).set(auth(ta)).send({ status: "in_progress" }).expect(200);
+    await action(r.id, otherTa, "close").expect(409);
+    await action(r.id, ta, "close").expect(200);
+    await action(r.id, ta, "close").expect(409);
+    await prisma.user.update({ where: { id: ta.id }, data: { name: "Changed later" } });
+    const saved = (await request(app).get(`/api/requests/${r.id}`).set(auth(manager)).expect(200)).body.data;
+    expect(saved.history.map((event: { action: string }) => event.action)).toEqual(["created", "claimed", "started", "closed"]);
+    expect(saved.history.map((event: { fromStatus: string; toStatus: string }) => [event.fromStatus, event.toStatus]))
+      .toEqual([[null, "pending"], ["pending", "assigned"], ["assigned", "in_progress"], ["in_progress", "closed"]]);
+    for (const event of saved.history.slice(1)) {
+      expect(event).toMatchObject({ actorId: ta.id, actorName: ta.name, actorEmail: ta.email, actorRole: "ta" });
+      expect(Number.isFinite(Date.parse(event.occurredAt))).toBe(true);
+    }
+    expect(saved.decision).toMatchObject({ reviewerId: manager.id, outcome: "approved" });
+    expect(saved.decisionHistory).toEqual([]);
+    expect((await request(app).get(`/api/requests/${r.id}`).set(auth(member)).expect(200)).body.data.history).toEqual(saved.history);
+    const closed = (await request(app).get("/api/requests?status=closed").set(auth(manager)).expect(200)).body.data;
+    expect(closed[0].history).toEqual(saved.history);
+    await request(app).get(`/api/requests/${r.id}`).set(auth(otherMember)).expect(404);
+    await request(app).get(`/api/requests/${r.id}`).expect(401);
+    await request(app).post("/api/requests").set(auth(member)).send({ ...validRequest, history: [{ action: "closed" }] }).expect(400);
+    await request(app).patch(`/api/requests/${r.id}/history`).set(auth(manager)).send({}).expect(404);
+  });
+
+  it("rolls back work changes when the history write fails", async () => {
+    const r = await create(); await review(r.id, manager).expect(200);
+    // Real database failure, scoped to the isolated test database and removed even on failure.
+    await prisma.$executeRawUnsafe(`CREATE FUNCTION us6_fail_history() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test history unavailable'; END $$`);
+    await prisma.$executeRawUnsafe(`CREATE TRIGGER us6_fail_history BEFORE INSERT ON request_history FOR EACH ROW EXECUTE FUNCTION us6_fail_history()`);
+    try {
+      await action(r.id, ta, "claim").expect(500);
+      expect(await prisma.labRequest.findUnique({ where: { id: r.id } })).toMatchObject({ status: "pending", assigneeEmail: null });
+      expect(await prisma.requestHistory.count({ where: { requestId: r.id } })).toBe(1);
+    } finally {
+      await prisma.$executeRawUnsafe(`DROP TRIGGER us6_fail_history ON request_history`);
+      await prisma.$executeRawUnsafe(`DROP FUNCTION us6_fail_history()`);
+    }
+  });
+
+  it("keeps legacy history unknown and records only subsequent real actions", async () => {
+    const legacy = await prisma.labRequest.create({ data: { title: "Old request", type: "general", requesterEmail: member.email,
+      status: "assigned", assigneeEmail: ta.email, requiresApproval: true, approvalStatus: "approved" } });
+    expect((await request(app).get(`/api/requests/${legacy.id}`).set(auth(manager)).expect(200)).body.data.history).toEqual([]);
+    await action(legacy.id, ta, "start").expect(200);
+    expect(await prisma.requestHistory.findMany({ where: { requestId: legacy.id } })).toEqual([
+      expect.objectContaining({ action: "started", fromStatus: "assigned", toStatus: "in_progress", actorId: ta.id }),
+    ]);
+  });
+
+  it("records rejection only as an approval decision with no fabricated work transition", async () => {
+    const r = await create(); await review(r.id, manager, "rejected").expect(200);
+    await action(r.id, ta, "claim").expect(409);
+    const saved = (await request(app).get(`/api/requests/${r.id}`).set(auth(manager)).expect(200)).body.data;
+    expect(saved.history).toHaveLength(1);
+    expect(saved.status).toBe("pending");
+    expect(saved.decision.outcome).toBe("rejected");
+  });
+});

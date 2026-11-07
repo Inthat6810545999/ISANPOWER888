@@ -142,6 +142,15 @@ Use **separate browser profiles or different browsers** for Member, TA, and Mana
 
 Request lists refresh every four seconds while visible, on focus, and manually. Reports refresh on entry and through their refresh button. Failed submissions retain form input and never show saved success. No connected page falls back to mock records.
 
+## Request history (US-6)
+
+Request details show a chronological timeline of submission, approval decisions,
+TA claim, start and close, with recorded actors and Asia/Bangkok timestamps.
+Managers can search closed requests under **Request approvals → Closed history**.
+Older requests show an incomplete-history notice rather than guessed events.
+Apply migration `20261107010000_request_history` before starting this API version.
+See [US-6 setup, migration and test notes](docs/development/US6-REQUEST-HISTORY.md).
+
 ## Authentication scope and limitations
 
 This version has password verification and database-backed sessions with server/API role enforcement. It no longer grants permissions from fixed demo identities, an email in a payload, a role header, or a client-side role selector.

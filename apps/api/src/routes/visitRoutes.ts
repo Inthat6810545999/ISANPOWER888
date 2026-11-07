@@ -9,13 +9,15 @@ visitRouter.post("/", publicRateLimit("visit-submit", 10, 60_000), async (req, r
   const visit = visitSchema.parse(req.body);
   const trackingCode = generateTrackingCode();
   try {
-    // A nested write commits all three records atomically before the receipt is sent.
+    // A nested write commits the request, contact, tracking and history records atomically before the receipt is sent.
     const created = await prisma.labRequest.create({
       data: {
         title: `Visitor request: ${visit.purpose}`, description: visit.details,
         type: "visitor", source: "visitor", requesterEmail: "",
         status: "pending", approvalStatus: "submitted", requiresApproval: true, priority: "medium",
         neededBy: new Date(`${visit.visitDate}T${visit.timeSlot === "morning" ? "09" : "13"}:00:00+07:00`),
+        history: { create: { action: "created", toStatus: "pending", actorName: visit.contactName,
+          actorEmail: visit.email, actorRole: "visitor" } },
         visit: { create: visit }, tracking: { create: { codeHash: hashTrackingCode(trackingCode) } },
       },
       select: { id: true },

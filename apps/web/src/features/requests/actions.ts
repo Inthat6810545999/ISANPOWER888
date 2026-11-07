@@ -37,6 +37,7 @@ function toWorkspace(request: LabRequest): WorkspaceRequest {
     status: request.status, approvalStatus: request.approvalStatus,
     requester: requesterOf(request),
     assignee: request.assigneeEmail ? personFromEmail(request.assigneeEmail) : null,
+    history: request.history,
     createdAt: request.createdAt, updatedAt: request.updatedAt, decision: request.decision, decisionHistory: request.decisionHistory,
     publicMessageUpdatedById: request.publicMessageUpdatedById ?? null,
     publicMessageUpdatedByName: request.publicMessageUpdatedByName ?? null,
