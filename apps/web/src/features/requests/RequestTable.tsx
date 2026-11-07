@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/workspace/StatusBadge";
 import styles from "@/components/workspace/workspace.module.css";
 import { CATEGORIES, PRIORITIES, STATUSES, type WorkspaceRequest } from "./types";
 import { PublicMessage, VisitorDetails } from "./VisitorDetails";
+import { CollaborationDetails } from "@/features/industry-collaboration/CollaborationDetails";
 
 // Fixed labels avoid Intl locale-data differences between server and browser (Sep/Sept).
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -47,7 +48,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
   const filtered = requests.filter((request) =>
     (!status || request.status === status) && (!category || request.category === category) &&
     (!priority || request.priority === priority) &&
-    `${request.title} ${request.id} ${request.requester.name} ${request.assignee?.name ?? ""}`.toLowerCase().includes(query),
+    `${request.title} ${request.id} ${request.requester.name} ${request.assignee?.name ?? ""} ${request.collaboration?.organization ?? ""} ${request.collaboration?.contactName ?? ""}`.toLowerCase().includes(query),
   ).sort((a, b) => sort === "due"
     ? (a.neededBy || "9999").localeCompare(b.neededBy || "9999")
     : b.createdAt.localeCompare(a.createdAt));
@@ -116,6 +117,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
           <div><dt>Location</dt><dd>{selected.location || "Not specified"}</dd></div><div><dt>Needed by</dt><dd>{formatDate(selected.neededBy)}</dd></div>
         </dl>
         <VisitorDetails request={selected} />
+        <CollaborationDetails request={selected} />
         <PublicMessage request={selected} />
         {selected.decision && <section className={styles.decisionRecord}>
           <h3>Approval decision: <StatusBadge kind="approval" status={selected.decision.outcome} /></h3>

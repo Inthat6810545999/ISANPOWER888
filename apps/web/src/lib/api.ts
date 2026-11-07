@@ -2,7 +2,7 @@ import "server-only";
 import { apiBaseUrl, sessionToken } from "./session";
 import type { ApprovalStatus, RequestStatus } from "./request-status";
 export { REQUEST_STATUSES, APPROVAL_STATUSES, type RequestStatus, type ApprovalStatus } from "./request-status";
-export const REQUEST_TYPES = ["equipment", "space", "consumable", "access", "visitor", "general"] as const;
+export const REQUEST_TYPES = ["equipment", "space", "consumable", "access", "visitor", "general", "industry_collaboration"] as const;
 export type RequestType = (typeof REQUEST_TYPES)[number];
 export type ApprovalDecision = { id: string; outcome: ApprovalStatus; reason: string; reviewerName: string; reviewerEmail: string; reviewedAt: string; supersededAt?: string | null };
 /** Staff-only contact and scheduling detail for Visitor requests. Never shown publicly. */
@@ -12,7 +12,11 @@ export type VisitDetails = {
   visitDate: string; timeSlot: "morning" | "afternoon";
   visitorCount: number; requestedHost: string; arrangements: string;
 };
-export const REQUEST_SOURCES = ["member", "visitor"] as const;
+export type CollaborationDetails = {
+  requestId: string; organization: string; contactName: string; contactEmail: string; phone: string;
+  submittedById: string; submittedByName: string; submittedByEmail: string;
+};
+export const REQUEST_SOURCES = ["member", "visitor", "industry_collaboration"] as const;
 export type RequestSource = (typeof REQUEST_SOURCES)[number];
 export type LabRequest = {
   id: string; title: string; description: string; type: RequestType; status: RequestStatus;
@@ -20,6 +24,7 @@ export type LabRequest = {
   location: string; requesterEmail: string; neededBy: string | null; assigneeEmail: string | null;
   createdAt: string; updatedAt: string; decision: ApprovalDecision | null; decisionHistory: ApprovalDecision[];
   source?: RequestSource; publicMessage?: string | null; visit?: VisitDetails | null;
+  collaboration?: CollaborationDetails | null;
   publicMessageUpdatedById?: string | null;
   publicMessageUpdatedByName?: string | null;
   publicMessageUpdatedByEmail?: string | null;

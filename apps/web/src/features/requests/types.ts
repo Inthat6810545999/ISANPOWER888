@@ -1,8 +1,8 @@
 import type { ApprovalStatus, RequestStatus } from "@/lib/request-status";
-import type { RequestSource, VisitDetails } from "@/lib/api";
+import type { RequestSource, VisitDetails, CollaborationDetails } from "@/lib/api";
 export { STATUS_LABELS as STATUSES } from "@/lib/request-status";
 /** UI view model; actions.ts maps API field names without changing status values. */
-export const CATEGORIES = {
+export const MEMBER_CATEGORIES = {
   equipment: "Equipment / space",
   space: "Space booking",
   consumable: "Consumables",
@@ -10,6 +10,7 @@ export const CATEGORIES = {
   visitor: "Visitor / collaboration",
   general: "General support",
 } as const;
+export const CATEGORIES = { ...MEMBER_CATEGORIES, industry_collaboration: "External Industry Collaboration" } as const;
 
 export const PRIORITIES = ["low", "medium", "high"] as const;
 export type Category = keyof typeof CATEGORIES;
@@ -49,4 +50,5 @@ export type WorkspaceRequest = RequestDraft & {
   publicMessageUpdatedAt?: string | null;
   /** Staff-only contact and scheduling detail; null for ordinary member requests. */
   visit: VisitDetails | null;
+  collaboration?: CollaborationDetails | null;
 };

@@ -1,8 +1,9 @@
 "use server";
 
-import { createLabRequest, listLabRequests, performLabRequestTaAction, reviewLabRequest, getReport, type TaAction, type LabRequest } from "@/lib/api";
+import { apiFetch, createLabRequest, listLabRequests, performLabRequestTaAction, reviewLabRequest, getReport, type TaAction, type LabRequest } from "@/lib/api";
 import { personFromEmail } from "./demo-identity";
-import { CATEGORIES, PRIORITIES, type RequestDraft, type WorkspaceRequest } from "./types";
+import { MEMBER_CATEGORIES, PRIORITIES, type RequestDraft, type WorkspaceRequest } from "./types";
+import { validateCollaboration } from "@/features/industry-collaboration/validation";
 
 import { requireActionRole } from "@/lib/session";
 import type { Role } from "@/lib/session-types";
@@ -18,6 +19,10 @@ function initialsOf(name: string) {
 /** Visitors have no lab account, so requesterEmail is empty by design.
  *  Identity comes from the staff-only visit record instead. */
 function requesterOf(request: LabRequest) {
+  if (request.source === "industry_collaboration" && request.collaboration) {
+    const sender = request.collaboration;
+    return { id: sender.submittedById, name: sender.submittedByName, initials: initialsOf(sender.submittedByName) };
+  }
   const visit = request.visit;
   if (request.source === "visitor" && visit) {
     return { id: visit.email, name: visit.contactName, initials: initialsOf(visit.contactName) };
@@ -37,6 +42,7 @@ function toWorkspace(request: LabRequest): WorkspaceRequest {
     publicMessageUpdatedByName: request.publicMessageUpdatedByName ?? null,
     publicMessageUpdatedByEmail: request.publicMessageUpdatedByEmail ?? null,
     publicMessageUpdatedAt: request.publicMessageUpdatedAt ?? null,
+    collaboration: request.collaboration ?? null,
     source: request.source ?? "member", publicMessage: request.publicMessage ?? "", visit: request.visit ?? null };
 }
 
@@ -59,7 +65,7 @@ export async function submitRequest(draft: RequestDraft): Promise<Result<Workspa
   try {
     if (!draft || typeof draft.title !== "string" || !draft.title.trim() || draft.title.length > 200 ||
         typeof draft.description !== "string" || !draft.description.trim() || draft.description.length > 4000 ||
-        !Object.hasOwn(CATEGORIES, draft.category) || !PRIORITIES.includes(draft.priority) ||
+        !Object.hasOwn(MEMBER_CATEGORIES, draft.category) || !PRIORITIES.includes(draft.priority) ||
         typeof draft.location !== "string" || draft.location.length > 200 ||
         typeof draft.neededBy !== "string") {
       throw new Error("Please check the request fields and try again.");
@@ -99,4 +105,25 @@ export async function reviewRequest(id: string, decision: "approved" | "rejected
 export async function loadReport(from = "", to = "") {
   await requireActionRole("lab_manager");
   return getReport(from, to);
+}
+
+export async function submitCollaboration(input: unknown): Promise<Result<WorkspaceRequest & { trackingCode: string }>> {
+  try {
+    await requireActionRole("ta");
+    const { values, errors } = validateCollaboration(input);
+    if (Object.keys(errors).length) throw new Error("Please check the collaboration fields and try again.");
+    const receipt = await apiFetch<{ data: LabRequest; trackingCode: string }>("/requests/industry-collaboration", {
+      method: "POST", body: JSON.stringify(values),
+    });
+    return { ok: true, data: { ...toWorkspace(receipt.data), trackingCode: receipt.trackingCode } };
+  } catch (error) { return failure(error); }
+}
+
+export async function loadCollaboration(id: string): Promise<Result<WorkspaceRequest>> {
+  try {
+    await requireActionRole("ta");
+    const { data } = await apiFetch<{ data: LabRequest }>(`/requests/${encodeURIComponent(id)}`);
+    if (data.source !== "industry_collaboration") throw new Error("Industry collaboration request not found.");
+    return { ok: true, data: toWorkspace(data) };
+  } catch (error) { return failure(error); }
 }

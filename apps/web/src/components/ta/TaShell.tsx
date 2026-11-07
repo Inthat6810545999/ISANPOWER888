@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { displayPerson } from "@/lib/session-types";
 import { SignOut } from "@/components/workspace/SignOut";
@@ -10,6 +11,7 @@ import styles from "@/components/workspace/workspace.module.css";
 
 /** The server layout and API independently enforce the TA role. */
 export function TaShell({ children }: { children: ReactNode }) {
+  const path = usePathname();
   const { user, requests, notice, dismissNotice } = useRequests();
   const person = displayPerson(user);
   return <div className={`${styles.workspace} ${styles.taWorkspace}`}>
@@ -23,7 +25,8 @@ export function TaShell({ children }: { children: ReactNode }) {
       </div>
       <p className={styles.navLabel}>MANAGEMENT</p>
       <nav aria-label="TA navigation" className={styles.nav}>
-        <Link href="/ta/queue" aria-current="page"><Icon name="queue" /> TA Queue <span className={styles.navCount}>{requests.length}</span></Link>
+        <Link href="/ta/queue" aria-current={path === "/ta/queue" ? "page" : undefined}><Icon name="queue" /> TA Queue <span className={styles.navCount}>{requests.length}</span></Link>
+        <Link href="/ta/collaborations/new" aria-current={path.startsWith("/ta/collaborations") ? "page" : undefined}>External Industry Collaboration</Link>
       </nav>
       <div className={styles.sidebarNote}><small>US-3 / DEMO</small><p>A clear queue.<br />A shared view.<br />A next step.</p><span /></div>
       <div className={styles.profile}><span className={styles.avatar}>{person.initials}</span>
@@ -31,7 +34,7 @@ export function TaShell({ children }: { children: ReactNode }) {
       </div>
     </aside>
     <div className={styles.mainColumn}>
-      <header className={styles.topbar}><span>TA Console <span className={styles.separator}>/</span><strong>Request queue</strong></span>
+      <header className={styles.topbar}><span>TA Console <span className={styles.separator}>/</span><strong>{path.startsWith("/ta/collaborations") ? "Industry collaboration" : "Request queue"}</strong></span>
         <div className={styles.topbarRight}><span className={styles.demoLabel}>TA session</span><span className={styles.avatar}>{person.initials}</span></div>
       </header>
       <main id="ta-content" className={styles.content}>

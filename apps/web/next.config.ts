@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   // Allows browser tests to run beside a developer's existing Next server.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   async headers() {
-    return [{ source: "/visit/track", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] }];
+    return ["/visit/track", "/collaboration/track"].map(source => ({ source, headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }] }));
   },
 };
 

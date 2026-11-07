@@ -6,6 +6,7 @@ import { RequestsState } from "@/features/requests/RequestsState";
 import { RequestTable, RequestStatusBadges } from "@/features/requests/RequestTable";
 import { CATEGORIES, type WorkspaceRequest } from "@/features/requests/types";
 import { PublicMessage, VisitorDetails } from "@/features/requests/VisitorDetails";
+import { CollaborationDetails } from "@/features/industry-collaboration/CollaborationDetails";
 import { PageHeading } from "@/components/workspace/PageHeading";
 import { Dialog } from "@/components/workspace/Dialog";
 import styles from "@/components/workspace/workspace.module.css";
@@ -55,11 +56,12 @@ export function ManagerApprovals() {
           <div><dt>Location</dt><dd>{selected.location || "Not specified"}</dd></div><div><dt>Needed by</dt><dd>{selected.neededBy || "No due date"}</dd></div>
         </dl>
         <VisitorDetails request={selected} />
+        <CollaborationDetails request={selected} />
         <PublicMessage request={selected} />
         <form onSubmit={submit} className={styles.reviewForm}>
           <label className={styles.field}>Decision<select name="decision" required defaultValue=""><option value="" disabled>Select a decision</option><option value="approved">Approve</option><option value="rejected">Reject</option></select></label>
           <label className={styles.field}>Reason (internal)<textarea name="reason" required maxLength={2000} rows={4} /></label>
-          <p className={styles.fieldHint}>The reason stays in the internal record. It is never shown to the requester.</p>
+          <p className={styles.fieldHint}>{selected.source === "industry_collaboration" ? "Internal staff record. Authorized TAs can read this reason; it is not sent to the external contact." : "The reason stays in the internal record. It is never shown to the requester."}</p>
           {selected.source === "visitor" && <>
             <label className={styles.field}>Message to the requester (public)<textarea name="publicMessage" maxLength={2000} rows={4} defaultValue={selected.publicMessage} /></label>
             <p className={styles.fieldHint}>Shown on the visitor&apos;s tracking page. Write it for someone outside the lab: say what happens next, and who to contact. Do not paste the internal reason, and do not include other people&apos;s details. Leave unchanged to keep the current message; clear it to remove the message.</p>

@@ -1,4 +1,4 @@
-import { CATEGORIES, PRIORITIES } from "../requests/types";
+import { MEMBER_CATEGORIES as CATEGORIES, PRIORITIES } from "../requests/types";
 import { bangkokDate } from "../visitor-request/validation";
 
 export type RequestFormValues = {

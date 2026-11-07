@@ -9,6 +9,8 @@ export function createApp(corsOrigin: string | undefined, mode: RuntimeMode = "t
 
   app.all("/api/visits/track", createVisitTrackRouter(createCorsMiddleware(corsOrigin, mode, true)));
 
+  app.all("/api/collaborations/track", createVisitTrackRouter(createCorsMiddleware(corsOrigin, mode, true), "industry_collaboration"));
+
   app.use(createCorsMiddleware(corsOrigin, mode));
   app.use(express.json());
 

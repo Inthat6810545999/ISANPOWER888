@@ -9,7 +9,7 @@ Member, TA, and Manager read the same PostgreSQL records through the authenticat
 | `status` | `pending`, `assigned`, `in_progress`, `closed`, `cancelled` |
 | `approvalStatus` | `not_required`, `submitted`, `under_review`, `approved`, `rejected`, `cancelled` |
 
-Creation is Member-only. The API derives `requesterEmail` from the session, sets `status=pending`, `requiresApproval=true`, and `approvalStatus=submitted` for every request. It rejects client-supplied `requiresApproval`, initial status, role, or requester identity overrides.
+Generic `POST /api/requests` creation is Member-only. Active, approved TAs can separately create formal industry requests using `POST /api/requests/industry-collaboration`; see [US-8 contract](US8-COLLABORATION-HANDOFF.md). Public Visitor submission remains a separate endpoint. The API derives `requesterEmail` from the session, sets `status=pending`, `requiresApproval=true`, and `approvalStatus=submitted` for every request. It rejects client-supplied `requiresApproval`, initial status, role, or requester identity overrides.
 
 | Action | Actor | Preconditions | Result |
 | --- | --- | --- | --- |
