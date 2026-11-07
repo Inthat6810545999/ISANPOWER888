@@ -55,7 +55,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 export async function listLabRequests(): Promise<LabRequest[]> {
   return (await apiFetch<{ data: LabRequest[] }>("/requests")).data;
 }
-export async function createLabRequest(input: { title: string; description?: string; type: RequestType; priority?: LabRequest["priority"]; location?: string; neededBy?: string }): Promise<LabRequest> {
+export async function createLabRequest(input: { title: string; description: string; type: RequestType; priority: LabRequest["priority"]; location?: string; neededBy?: string }): Promise<LabRequest> {
   return (await apiFetch<{ data: LabRequest }>("/requests", { method: "POST", body: JSON.stringify(input) })).data;
 }
 export async function performLabRequestTaAction(id: string, payload: TaAction): Promise<LabRequest> {

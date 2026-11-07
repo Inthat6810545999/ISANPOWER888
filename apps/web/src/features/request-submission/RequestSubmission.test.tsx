@@ -108,3 +108,18 @@ describe("validateRequestForm", () => {
     expect(validateRequestForm({ ...valid, neededBy: "2026-11-06" }, "2026-11-06").neededBy).toBeUndefined();
   });
 });
+
+
+describe("US-1 text and enum boundaries", () => {
+  const valid = { title: "Bench", category: "equipment", priority: "medium", description: "Need it", location: "", neededBy: "" };
+  it("accepts trimmed maximum lengths and rejects description overflow", () => {
+    expect(validateRequestForm({ ...valid, title: ` ${"t".repeat(200)} `, description: ` ${"d".repeat(4000)} `, location: ` ${"l".repeat(200)} ` })).toEqual({});
+    expect(validateRequestForm({ ...valid, description: "d".repeat(4001) }).description).toBe("Use 4000 characters or fewer.");
+  });
+  it.each(["", "urgent"])("rejects invalid priority %s", priority => {
+    expect(validateRequestForm({ ...valid, priority }).priority).toBe("Choose a priority.");
+  });
+  it.each(["", "industry_collaboration"])("rejects invalid Member category %s", category => {
+    expect(validateRequestForm({ ...valid, category }).category).toBe("Choose a category.");
+  });
+});

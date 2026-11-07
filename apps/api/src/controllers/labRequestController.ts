@@ -17,9 +17,9 @@ function historyActor(user: Actor) {
   return { actorId: user.id, actorName: user.name, actorEmail: user.email, actorRole: user.role };
 }
 const createSchema = z.object({
-  title: z.string().trim().min(1).max(200), description: z.string().max(5000).optional(),
+  title: z.string().trim().min(1).max(200), description: z.string().trim().min(1).max(4000),
   type: z.enum(MEMBER_REQUEST_TYPES), neededBy: z.coerce.date().optional(),
-  priority: z.enum(REQUEST_PRIORITIES).default("medium"),
+  priority: z.enum(REQUEST_PRIORITIES),
   location: z.string().trim().max(200).default(""),
 }).strict();
 const listQuerySchema = z.object({

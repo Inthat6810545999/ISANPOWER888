@@ -64,10 +64,10 @@ export async function loadRequests(scope: Role): Promise<Result<WorkspaceRequest
 
 export async function submitRequest(draft: RequestDraft): Promise<Result<WorkspaceRequest>> {
   try {
-    if (!draft || typeof draft.title !== "string" || !draft.title.trim() || draft.title.length > 200 ||
-        typeof draft.description !== "string" || !draft.description.trim() || draft.description.length > 4000 ||
+    if (!draft || typeof draft.title !== "string" || !draft.title.trim() || draft.title.trim().length > 200 ||
+        typeof draft.description !== "string" || !draft.description.trim() || draft.description.trim().length > 4000 ||
         !Object.hasOwn(MEMBER_CATEGORIES, draft.category) || !PRIORITIES.includes(draft.priority) ||
-        typeof draft.location !== "string" || draft.location.length > 200 ||
+        typeof draft.location !== "string" || draft.location.trim().length > 200 ||
         typeof draft.neededBy !== "string") {
       throw new Error("Please check the request fields and try again.");
     }

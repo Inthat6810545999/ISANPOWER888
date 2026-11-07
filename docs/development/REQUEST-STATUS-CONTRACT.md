@@ -26,7 +26,16 @@ TA actions preserve approval and decision metadata. Manager decisions preserve w
 
 All request endpoints require a Bearer session token obtained by password login. Next.js uses an HttpOnly cookie and forwards this token server-to-server.
 
-Member `POST /api/requests`:
+Member `POST /api/requests` requires `title`, `description`, `type` and an explicit
+`priority`. Title and description are trimmed and must be non-empty; their maximum
+lengths are 200 and 4,000 characters respectively. `type` must be a Member request
+type (not `industry_collaboration`), and `priority` must be `low`, `medium` or
+`high`. The UI selects `medium` initially and sends it explicitly; the API does
+not fill in missing priority. Invalid payloads return 400 with validation details
+before any request/history write. Location and needed-by date remain optional.
+This validation change needs no database migration and does not rewrite old data.
+
+Example:
 
 ```json
 {
