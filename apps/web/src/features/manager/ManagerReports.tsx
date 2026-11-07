@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import type { Report } from "@/lib/api";
 import { loadReport } from "@/features/requests/actions";
@@ -41,6 +42,7 @@ export function ManagerReports() {
   const count = (entries: Report["byStatus"], key: string) => entries.find((e) => e.label === key)?.count ?? 0;
   return <>
     <PageHeading title="Dashboard / Reports" description="Understand request volume, work progress, and approval outcomes." showNewRequest={false} />
+    <p className={styles.helper}><Link href="/manager/approvals">Browse requests and the Closed history tab for individual timelines</Link></p>
     <form className={styles.reportFilters} onSubmit={submit}>
       <label className={styles.field}>Created from (UTC)<input type="date" name="from" /></label>
       <label className={styles.field}>Created through (UTC)<input type="date" name="to" /></label>

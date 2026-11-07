@@ -27,6 +27,7 @@ describe("US-8 industry collaboration", () => {
       status: "pending", approvalStatus: "submitted", requiresApproval: true, requesterEmail: ta.user.email, assigneeEmail: null,
       collaboration: { ...Object.fromEntries(Object.entries(input).filter(([k]) => !["title", "description"].includes(k))),
         submittedById: ta.user.id, submittedByName: ta.user.name, submittedByEmail: ta.user.email }, visit: null, decision: null });
+    expect(saved.history).toEqual([expect.objectContaining({ action: "created", actorId: ta.user.id, actorRole: "ta", toStatus: "pending" })]);
     expect(saved).not.toHaveProperty("tracking"); expect(saved).not.toHaveProperty("trackingCode");
     expect(await prisma.visitTrackingCredential.count()).toBe(1);
     expect(typeof result.body.trackingCode).toBe("string");

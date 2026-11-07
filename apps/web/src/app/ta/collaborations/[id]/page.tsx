@@ -2,7 +2,7 @@ import Link from "next/link";
 import { loadCollaboration } from "@/features/requests/actions";
 import { CollaborationDetails } from "@/features/industry-collaboration/CollaborationDetails";
 import { RequestStatusBadges } from "@/features/requests/RequestTable";
-import { StatusBadge } from "@/components/workspace/StatusBadge";
+import { RequestTimeline } from "@/features/requests/RequestTimeline";
 import styles from "@/components/workspace/workspace.module.css";
 
 export default async function CollaborationPage({ params }: { params: Promise<{ id: string }> }) {
@@ -15,11 +15,7 @@ export default async function CollaborationPage({ params }: { params: Promise<{ 
       <h1>{request.title}</h1><RequestStatusBadges request={request} />
       <CollaborationDetails request={request} />
       <h2>Purpose and collaboration details</h2><p className={styles.description}>{request.description}</p>
-      {request.decision && <section className={styles.decisionRecord}>
-        <h2>Approval decision</h2><StatusBadge kind="approval" status={request.decision.outcome} />
-        <p className={styles.description}>{request.decision.reason}</p>
-        <p>Reviewed by {request.decision.reviewerName} ({request.decision.reviewerEmail}) · {new Date(request.decision.reviewedAt).toLocaleString("en-GB", { timeZone: "Asia/Bangkok" })} (Asia/Bangkok)</p>
-      </section>}
+      <RequestTimeline request={request} />
       <p><Link href="/ta/queue">Open TA queue to view current status and available work actions</Link></p>
     </div>
   </section>;

@@ -94,7 +94,7 @@
 .pagination > div { display: flex; align-items: center; gap: 12px; }
 .pagination button { border: 1px solid var(--line); width: 29px; height: 29px; font-size: 19px; line-height: 1; }
 .footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 10px; color: #847867; margin-top: 25px; }
-.scopeSwitch { display: flex; gap: 5px; margin-bottom: 20px; }
+.scopeSwitch { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 20px; }
 .scopeSwitch button { padding: 10px 15px; border: 1px solid var(--line); font-size: 12px; border-radius: 2px; }
 .scopeSwitch button[aria-pressed="true"] { background: #e6dccb; border-color: #bfa580; color: #4c3b28; }
 .scopeSwitch span { margin-left: 10px; font-size: 10px; }
@@ -231,3 +231,14 @@
 
 .localLogin { margin: 0 32px 32px; }
 .localLogin summary { cursor: pointer; color: var(--ink, #332b26); }
+
+.historySection { margin-top: 28px; border-top: 1px solid var(--line, #d7cab7); padding-top: 20px; overflow-wrap: anywhere; }
+.historyList { list-style: none; margin: 20px 0 0 8px; padding: 0 0 0 22px; }
+.historyList li { position: relative; padding: 0 0 24px; }
+.historyList li:last-child { padding-bottom: 0; }
+.historyList li::before { content: ""; position: absolute; z-index: 1; left: -26px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: #87652f; }
+.historyList li:not(:last-child)::after { content: ""; position: absolute; left: -22px; top: 10px; bottom: -10px; width: 2px; background: #bfa580; }
+.historyList p { margin: 6px 0; font-size: 12px; line-height: 1.7; }
+.historyHeading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.historyHeading time { font-size: 11px; color: var(--muted, #776d60); }
+.historyNote { padding: 10px 12px; background: #eee8dd; font-size: 12px; line-height: 1.7; }

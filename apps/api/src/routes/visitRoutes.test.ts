@@ -25,6 +25,9 @@ describe("public visitor requests", () => {
     const saved = await prisma.labRequest.findUniqueOrThrow({ where: { id: requestId }, include: { visit: true, tracking: true } });
     expect(saved).toMatchObject({ source: "visitor", type: "visitor", requesterEmail: "", status: "pending", approvalStatus: "submitted", requiresApproval: true, priority: "medium", neededBy: new Date("2099-12-01T02:00:00Z"), visit: { contactName: "Guest", phone: "", visitorCount: 2 }, tracking: { codeHash: hashTrackingCode(trackingCode) } });
     expect(JSON.stringify(saved)).not.toContain(trackingCode);
+    expect(await prisma.requestHistory.findMany({ where: { requestId } })).toEqual([
+      expect.objectContaining({ action: "created", actorId: null, actorName: "Guest", actorRole: "visitor", toStatus: "pending" }),
+    ]);
     const second = await submit().expect(201);
     expect(second.body.data.trackingCode).not.toBe(trackingCode);
   });

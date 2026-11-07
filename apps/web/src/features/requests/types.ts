@@ -1,5 +1,5 @@
 import type { ApprovalStatus, RequestStatus } from "@/lib/request-status";
-import type { RequestSource, VisitDetails, CollaborationDetails } from "@/lib/api";
+import type { RequestSource, VisitDetails, CollaborationDetails, RequestHistoryEvent } from "@/lib/api";
 export { STATUS_LABELS as STATUSES } from "@/lib/request-status";
 /** UI view model; actions.ts maps API field names without changing status values. */
 export const MEMBER_CATEGORIES = {
@@ -38,6 +38,7 @@ export type WorkspaceRequest = RequestDraft & {
   assignee: Person | null;
   createdAt: string;
   updatedAt?: string;
+  history?: RequestHistoryEvent[];
   decisionHistory?: { id: string; outcome: ApprovalStatus; reason: string; reviewerName: string; reviewerEmail: string; reviewedAt: string; supersededAt?: string | null }[];
   decision?: { outcome: ApprovalStatus; reason: string; reviewerName: string; reviewerEmail: string; reviewedAt: string } | null;
   /** `visitor` requests come from the public form and have no lab account. */

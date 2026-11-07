@@ -71,6 +71,7 @@ model LabRequest {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   decisions        ApprovalDecision[]
+  history          RequestHistory[]
 
   @@index([requesterEmail])
   @@index([assigneeEmail, status])
@@ -186,4 +187,28 @@ model PublicRateLimit {
   expiresAt DateTime
   @@index([expiresAt])
   @@map("public_rate_limits")
+}
+
+// Actor snapshots deliberately survive account changes. No guessed legacy events.
+enum RequestHistoryAction {
+  created
+  claimed
+  started
+  closed
+}
+
+model RequestHistory {
+  id          Int @id @default(autoincrement())
+  requestId   String
+  request     LabRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  action      RequestHistoryAction
+  fromStatus  RequestStatus?
+  toStatus    RequestStatus
+  actorId     String?
+  actorName   String
+  actorEmail  String
+  actorRole   String
+  occurredAt  DateTime @default(now())
+  @@index([requestId, occurredAt, id])
+  @@map("request_history")
 }

@@ -16,7 +16,8 @@
     "test:workflow-smoke-live": "node --import ../api/node_modules/tsx/dist/loader.mjs --test scripts/workflow-smoke.live.test.mjs",
     "test": "vitest run",
     "screenshots:ui": "node scripts/ui-states.screenshots.mjs",
-    "test:us8-live": "node --import ../api/node_modules/tsx/dist/loader.mjs --test scripts/us8.live.test.mjs"
+    "test:us8-live": "node --import ../api/node_modules/tsx/dist/loader.mjs --test scripts/us8.live.test.mjs",
+    "test:us6-live": "node --import ../api/node_modules/tsx/dist/loader.mjs --test scripts/us6.live.test.mjs"
   },
   "dependencies": {
     "next": "16.3.4",

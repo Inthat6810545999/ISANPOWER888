@@ -18,7 +18,13 @@ export type CollaborationDetails = {
 };
 export const REQUEST_SOURCES = ["member", "visitor", "industry_collaboration"] as const;
 export type RequestSource = (typeof REQUEST_SOURCES)[number];
+export type RequestHistoryEvent = {
+  id: number; action: "created" | "claimed" | "started" | "closed";
+  fromStatus: RequestStatus | null; toStatus: RequestStatus;
+  actorId: string | null; actorName: string; actorEmail: string; actorRole: string; occurredAt: string;
+};
 export type LabRequest = {
+  history?: RequestHistoryEvent[];
   id: string; title: string; description: string; type: RequestType; status: RequestStatus;
   approvalStatus: ApprovalStatus; requiresApproval: boolean; priority: "low" | "medium" | "high";
   location: string; requesterEmail: string; neededBy: string | null; assigneeEmail: string | null;

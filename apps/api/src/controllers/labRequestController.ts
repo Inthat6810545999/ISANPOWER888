@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { Request, Response } from "express";
 import { generateTrackingCode, hashTrackingCode } from "../visits/contract.js";
 import { z } from "zod";
@@ -6,11 +7,14 @@ import { APPROVAL_STATUSES, REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_TYPES,
 import { HttpError } from "../middleware/errorHandler.js";
 import { actor, type Actor } from "../auth/session.js";
 
-const includeDecision = { visit: true, collaboration: true, decisions: { orderBy: { reviewedAt: "desc" as const } } } as const;
+const includeDecision = { history: { orderBy: [{ occurredAt: "asc" as const }, { id: "asc" as const }] }, visit: true, collaboration: true, decisions: { orderBy: { reviewedAt: "desc" as const } } } satisfies Prisma.LabRequestInclude;
 function withDecision<T extends { decisions: { supersededAt: Date | null }[] }>(record: T) {
   const { decisions, ...request } = record;
   return { ...request, decision: decisions.find((d) => !d.supersededAt) ?? null,
     decisionHistory: decisions.filter((d) => d.supersededAt) };
+}
+function historyActor(user: Actor) {
+  return { actorId: user.id, actorName: user.name, actorEmail: user.email, actorRole: user.role };
 }
 const createSchema = z.object({
   title: z.string().trim().min(1).max(200), description: z.string().max(5000).optional(),
@@ -49,6 +53,7 @@ export async function createLabRequest(req: Request, res: Response): Promise<voi
   const payload = createSchema.parse(req.body);
   const created = await prisma.labRequest.create({ data: {
     ...payload, requesterEmail: actor(res).email, status: "pending",
+    history: { create: { action: "created", toStatus: "pending", ...historyActor(actor(res)) } },
     requiresApproval: true, approvalStatus: "submitted",
   }, include: includeDecision });
   res.status(201).json({ data: withDecision(created) });
@@ -72,6 +77,7 @@ export async function createIndustryCollaboration(req: Request, res: Response): 
     title, description, type: "industry_collaboration", source: "industry_collaboration",
     requesterEmail: ta.email, status: "pending", requiresApproval: true, approvalStatus: "submitted",
     tracking: { create: { codeHash: hashTrackingCode(trackingCode) } },
+    history: { create: { action: "created", toStatus: "pending", ...historyActor(ta) } },
     priority: "medium", collaboration: { create: {
       ...contact, submittedById: ta.id, submittedByName: ta.name, submittedByEmail: ta.email,
     } },
@@ -151,7 +157,14 @@ async function executeTa(id: string, payload: TaAction, res: Response) {
     const current = await tx.labRequest.findUnique({ where: { id }, include: includeDecision });
     if (!current) throw new HttpError(404, "Lab request not found");
     if (result.count !== 1) throw new HttpError(409, "Action blocked: check approval, assignment, and current work status, then refresh.");
-    return withDecision(current);
+    // The conditional update holds the row lock. A competing/repeated action cannot
+    // append an event; failure to persist history rolls back the state change too.
+    await tx.requestHistory.create({ data: {
+      requestId: id, action: payload.action === "claim" ? "claimed" : payload.action === "start" ? "started" : "closed",
+      fromStatus: payload.action === "claim" ? "pending" : payload.action === "start" ? "assigned" : "in_progress",
+      toStatus: current.status, ...historyActor(user), occurredAt: new Date(),
+    } });
+    return withDecision(await tx.labRequest.findUniqueOrThrow({ where: { id }, include: includeDecision }));
   });
 }
 

@@ -6,6 +6,7 @@ import { Icon } from "@/components/workspace/Icon";
 import { StatusBadge } from "@/components/workspace/StatusBadge";
 import styles from "@/components/workspace/workspace.module.css";
 import { CATEGORIES, PRIORITIES, STATUSES, type WorkspaceRequest } from "./types";
+import { RequestTimeline, historyTime } from "./RequestTimeline";
 import { PublicMessage, VisitorDetails } from "./VisitorDetails";
 import { CollaborationDetails } from "@/features/industry-collaboration/CollaborationDetails";
 
@@ -116,24 +117,11 @@ export function RequestTable({ title, requests, renderRowActions }: {
           <div><dt>Category</dt><dd>{CATEGORIES[selected.category]}</dd></div><div><dt>Priority</dt><dd className={styles.priority}>{selected.priority}</dd></div>
           <div><dt>Location</dt><dd>{selected.location || "Not specified"}</dd></div><div><dt>Needed by</dt><dd>{formatDate(selected.neededBy)}</dd></div>
         </dl>
+        {selected.updatedAt && <p className={styles.helper}>Last updated: <time dateTime={selected.updatedAt}>{historyTime(selected.updatedAt)}</time> (Asia/Bangkok)</p>}
         <VisitorDetails request={selected} />
         <CollaborationDetails request={selected} />
         <PublicMessage request={selected} />
-        {selected.decision && <section className={styles.decisionRecord}>
-          <h3>Approval decision: <StatusBadge kind="approval" status={selected.decision.outcome} /></h3>
-          <p className={styles.description}>{selected.decision.reason}</p>
-          <p>Reviewed by {selected.decision.reviewerName} ({selected.decision.reviewerEmail})</p>
-          <p>{new Date(selected.decision.reviewedAt).toLocaleString()}</p>
-          <p className={styles.helper}>Internal record. This reason is never shown to the requester.</p>
-        </section>}
-        {!!selected.decisionHistory?.length && <section className={styles.decisionRecord}>
-          <h3>Previous decisions</h3>
-          <p>These decisions were superseded when open requests were returned for approval. They do not authorize current work.</p>
-          {selected.decisionHistory.map((decision) => <div key={decision.id}>
-            <p><StatusBadge kind="approval" status={decision.outcome} /> — {decision.reason}</p>
-            <p>Reviewed by {decision.reviewerName} ({decision.reviewerEmail}) · {new Date(decision.reviewedAt).toLocaleString()}</p>
-          </div>)}
-        </section>}
+        <RequestTimeline request={selected} />
         <p className={styles.helper}>Saved to your lab workspace · Status updates automatically.</p>
       </div>
     </Dialog>}
