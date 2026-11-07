@@ -47,7 +47,7 @@ jobs:
       - run: npm test
       - run: npm run build
   web:
-    name: Web (lint, typecheck, contracts, build)
+    name: Web (lint, typecheck, unit tests, contracts, build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -63,4 +63,5 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:contracts
+      - run: npm test
       - run: npm run build
