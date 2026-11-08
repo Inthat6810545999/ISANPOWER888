@@ -20,6 +20,15 @@ The shared Next.js/TypeScript frontend uses Express, Prisma, and PostgreSQL. Fol
 - Work and approval states are independent. Required approval gates both start and close. See the [status contract](REQUEST-STATUS-CONTRACT.md).
 - `/` and `/open-house` are public. Pending accounts are directed to `/pending` and cannot access internal pages or request APIs.
 
+## US-3 queue behavior
+
+- TA Queue starts in **Active requests**: Pending, Assigned and In progress. Pending work remains visible when approval is submitted or rejected; approval is shown separately and still gates actions.
+- **Ready to accept** keeps the approved, unassigned queue. **Assigned to me** shows the current TA's active work.
+- **Closed history** shows completed work. Closing a request moves the TA to this view. Cancelled records remain available in **All requests**, but never in Active requests.
+- Shared request tables support newest first, due date, category label A–Z, priority High → Medium → Low, and work status Pending → Assigned → In progress → Closed → Cancelled. Ties use newest creation time, then ID.
+- Search and filters apply before sorting and pagination. Sorting/filter changes reset to the first page. Lists still load the authorized records client-side.
+- This update changes the frontend only; no database migration is needed.
+
 ## Follow-up work for teammates
 
 - Extend login/account lifecycle without reintroducing client email/role authority. Membership approval screens, recovery, MFA, and user administration remain future work.
