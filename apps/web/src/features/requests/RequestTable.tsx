@@ -6,6 +6,7 @@ import { Icon } from "@/components/workspace/Icon";
 import { StatusBadge } from "@/components/workspace/StatusBadge";
 import styles from "@/components/workspace/workspace.module.css";
 import { CATEGORIES, PRIORITIES, STATUSES, type WorkspaceRequest } from "./types";
+import { compareRequests, type RequestSort } from "./request-sorting";
 import { RequestTimeline, historyTime } from "./RequestTimeline";
 import { PublicMessage, VisitorDetails } from "./VisitorDetails";
 import { CollaborationDetails } from "@/features/industry-collaboration/CollaborationDetails";
@@ -39,7 +40,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
   const [status, setStatus] = useState("");
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("");
-  const [sort, setSort] = useState("latest");
+  const [sort, setSort] = useState<RequestSort>("latest");
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = requests.find((request) => request.id === selectedId);
@@ -50,9 +51,7 @@ export function RequestTable({ title, requests, renderRowActions }: {
     (!status || request.status === status) && (!category || request.category === category) &&
     (!priority || request.priority === priority) &&
     `${request.title} ${request.id} ${request.requester.name} ${request.assignee?.name ?? ""} ${request.collaboration?.organization ?? ""} ${request.collaboration?.contactName ?? ""}`.toLowerCase().includes(query),
-  ).sort((a, b) => sort === "due"
-    ? (a.neededBy || "9999").localeCompare(b.neededBy || "9999")
-    : b.createdAt.localeCompare(a.createdAt));
+  ).sort((a, b) => compareRequests(a, b, sort));
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * PAGE_SIZE;
@@ -79,8 +78,11 @@ export function RequestTable({ title, requests, renderRowActions }: {
           <select aria-label="Filter by priority" value={priority} onChange={(e) => { setPriority(e.target.value); setPage(1); }}>
             <option value="">Any priority</option>{PRIORITIES.map((value) => <option key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</option>)}
           </select>
-          <select aria-label="Sort requests" value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }}>
+          <select aria-label="Sort requests" value={sort} onChange={(e) => { setSort(e.target.value as RequestSort); setPage(1); }}>
             <option value="latest">Newest first</option><option value="due">Due date</option>
+            <option value="category">Category (A–Z)</option>
+            <option value="priority">Priority (high first)</option>
+            <option value="status">Work status (Pending → Closed)</option>
           </select>
         </div>
       </div>

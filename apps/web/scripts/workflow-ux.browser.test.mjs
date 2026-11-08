@@ -90,6 +90,16 @@ test("workflow UX: loading, errors, retries and double submits", { timeout: 3000
   await page.getByText("Calibrate the oscilloscope").first().waitFor({ timeout: 15000 });
   listDelay = 0;
 
+  // US-3 defaults to all active work, including requests awaiting a decision.
+  assert.equal(await page.getByRole("button", { name: /^Active requests/ }).getAttribute("aria-pressed"), "true");
+  assert.equal(await page.locator("tbody tr").count(), 2);
+  await page.getByRole("combobox", { name: "Sort requests" }).selectOption("priority");
+  await page.getByRole("combobox", { name: "Sort requests" }).selectOption("category");
+  await page.getByRole("combobox", { name: "Sort requests" }).selectOption("status");
+  await shot("ta-active-queue");
+  await page.getByRole("button", { name: /^Closed history/ }).click();
+  await page.getByText("No requests found").waitFor();
+
   // --- Approval and work progress must read as two separate facts. ---
   await page.getByRole("button", { name: /^All requests/ }).click();
   const declinedRow = page.locator("tr", { hasText: "Order replacement sensors" });
@@ -124,6 +134,7 @@ test("workflow UX: loading, errors, retries and double submits", { timeout: 3000
   // --- A failed work action names the request and leaves the buttons usable. ---
   actionDelay = 0; actionStatus = 409; actionCalls = 0;
   await page.goto(`${web}/ta/queue`);
+  await page.getByRole("button", { name: /^Ready to accept/ }).click();
   await page.getByRole("button", { name: "Assign to myself" }).first().waitFor({ timeout: 15000 });
   await page.getByRole("button", { name: "Assign to myself" }).first().click();
   const alert = page.locator('p[role="alert"]').filter({ hasText: "did not save" });
