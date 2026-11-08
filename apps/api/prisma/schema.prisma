@@ -101,9 +101,31 @@ model User {
   googleSubject String? @unique
   passwordHash String?
   active       Boolean @default(true)
+  membershipVersion Int @default(0)
   sessions     Session[]
   decisions    ApprovalDecision[]
   @@map("users")
+}
+
+// Append-only application audit snapshots; account changes never rewrite history.
+model MembershipAudit {
+  id Int @id @default(autoincrement())
+  targetId String
+  targetName String
+  targetEmail String
+  actorId String
+  actorName String
+  actorEmail String
+  action String
+  previousRole UserRole
+  nextRole UserRole
+  previousActive Boolean
+  nextActive Boolean
+  previousMembership MembershipStatus
+  nextMembership MembershipStatus
+  occurredAt DateTime @default(now())
+  @@index([targetId, id])
+  @@map("membership_audit")
 }
 
 model OAuthAttempt {

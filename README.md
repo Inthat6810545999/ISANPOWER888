@@ -6,7 +6,7 @@ A lab request workspace built with Next.js, TypeScript, Express, Prisma, and Pos
 
 The login page now offers **Sign in with Google** and **Continue as Guest**. New Google users start as `unassigned / PENDING` and see **Waiting for approval**. Guests see only Open House/public content. Existing users retain their stored membership and role. Internal access requires approved membership as well as the correct role.
 
-Google OAuth credentials are not included. Configure the Web application client and environment variables using the app `.env.example` files as references. Lab Managers approve pending membership at `/manager/members`; membership rejection is not implemented.
+Google OAuth credentials are not included. Configure the Web application client and environment variables using the app `.env.example` files as references. Lab Managers approve registrations, change roles, deactivate/reactivate accounts and review management history at `/manager/members`. See [US-10 setup and behavior](docs/development/US10-MEMBER-MANAGEMENT.md); membership rejection is not implemented.
 
 ## Roles and workflow
 
@@ -157,7 +157,7 @@ This version has password verification and database-backed sessions with server/
 
 Passwords are stored as salted scrypt hashes. Login returns a random opaque session token; PostgreSQL stores only its SHA-256 hash with an eight-hour expiry. Next.js stores the token in an HttpOnly, SameSite=Lax cookie (Secure in production) and forwards it server-to-server as a Bearer token. Each protected API request reloads the session, active account, and current role. Logout revokes the session. Next.js Server Actions retain their built-in origin protection; do not loosen allowed origins for untrusted sites.
 
-**This is a local presentation authentication implementation, not a complete production identity platform.** Local demo accounts are manually seeded; Google registration creates accounts with pending membership. There is no membership approval UI, password recovery, MFA, user administration, or production security review. Login throttling is in-memory for one API process. Production requires HTTPS, secure account provisioning, a shared rate limiter, and deployment-specific hardening. Existing request ownership remains email-based; a future email-change feature must migrate ownership consistently. Historical approval values are preserved, but reviewer metadata is not invented for old decisions.
+**This is a local presentation authentication implementation, not a complete production identity platform.** Local demo accounts are manually seeded; Google registration creates accounts with pending membership. Lab Managers manage membership approval, roles and account activation with audit history. Password recovery, MFA and a production security review remain outside the current scope. Login throttling is in-memory for one API process. Production requires HTTPS, secure account provisioning, a shared rate limiter, and deployment-specific hardening. Existing request ownership remains email-based; a future email-change feature must migrate ownership consistently. Historical approval values are preserved, but reviewer metadata is not invented for old decisions.
 
 ## API reference
 

@@ -13,6 +13,7 @@ beforeAll(() => {
 });
 
 afterEach(async () => {
+  await prisma.membershipAudit.deleteMany();
   await prisma.labRequest.deleteMany();
   await prisma.publicRateLimit.deleteMany();
   await prisma.user.deleteMany();
