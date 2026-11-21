@@ -1,54 +1,67 @@
 # ISANPOWER888
 
-A lab request workspace built with Next.js, TypeScript, Express, Prisma, and PostgreSQL. Members submit requests, TAs manage the work, and Lab Managers make approval decisions and review reports. All three workspaces use the same database.
+A lab workflow and request management system built with Next.js, TypeScript, Express, Prisma, and PostgreSQL.
 
-## Google sign-in and visitors
+Members submit and track requests, Teaching Assistants (TAs) carry out approved work, and Lab Managers review requests, manage member access, and view reports. Visitors and industry collaborators can track their requests without creating an account.
 
-The login page now offers **Sign in with Google** and **Continue as Guest**. New Google users start as `unassigned / PENDING` and see **Waiting for approval**. Guests see only Open House/public content. Existing users retain their stored membership and role. Internal access requires approved membership as well as the correct role.
+## Features and roles
 
-Google OAuth credentials are not included. Configure the Web application client and environment variables using the app `.env.example` files as references. Lab Managers approve registrations, change roles, deactivate/reactivate accounts and review management history at `/manager/members`. See [US-10 setup and behavior](docs/development/US10-MEMBER-MANAGEMENT.md); membership rejection is not implemented.
+| Role | Capabilities |
+| --- | --- |
+| Lab Member | Submit requests and view their own requests and history |
+| TA | View requests, claim approved work, start and close assigned work, and submit industry collaboration requests |
+| Lab Manager | Approve or reject requests, manage membership and account access, and view history and aggregate reports |
+| Visitor | Submit a public lab-visit request and track it using a private tracking code |
+| Industry collaborator | Track a request submitted on their behalf by a TA |
 
-## Roles and workflow
+New Google users start with `unassigned / PENDING` access. An approved Lab Manager must approve their registration and assign a role before they can enter an internal workspace. Existing users retain their stored membership and role.
 
-The application has Member, TA and Lab Manager roles, with `unassigned / PENDING` for users awaiting access. Admin has been removed. See [role migration notes](docs/development/ROLES.md) when upgrading an existing database.
+Lab Managers do not inherit TA work permissions. There is no Admin role.
 
-| Capability | Lab Member | TA | Lab Manager |
-| --- | --- | --- | --- |
-| Submit requests | Yes | No | No |
-| List and read request details | Own requests | All requests | All requests |
-| Accept approved work for yourself | No | Yes | No |
-| Start and close work | No | Assigned TA only | No |
-| Approve or reject with a reason | No | No | Yes |
-| Dashboard, date filters, aggregate CSV reports | No | No | Yes |
+## Request workflow
 
-**Lab Manager does not inherit TA permissions.** Work and approval are separate fields:
+Work progress and approval are separate fields:
 
-- Work: `pending → assigned → in_progress → closed`.
-- Approval for every new request: `submitted → approved / rejected`. `not_required` is retained only for historical records.
-- Manager approval is required before a TA can claim, start, or close a request. TAs can only accept work for themselves; assignment to another TA is not supported.
-- Rejected requests cannot start or close successfully. Existing unapproved work that was already in progress in an older demo is also blocked from closing.
-- Approval never changes work status. Closing never changes approval or its audit record.
-- Every final request decision requires a reason and records the verified reviewer ID, name, email, and server timestamp. Final decisions cannot be overwritten.
+- Work: `pending → assigned → in_progress → closed`
+- Approval: `submitted → approved / rejected`
 
-Legacy `under_review` and `cancelled` values remain readable for compatibility. The current UI does not offer cancellation or reopening decisions.
+For new requests:
+
+1. A Member, Visitor, or TA submits a request through the appropriate form.
+2. A Lab Manager approves or rejects it with a required reason.
+3. After approval, a TA claims the request for themselves.
+4. The assigned TA starts and closes the work.
+5. Authorized users can review the recorded history.
+
+Approval is required before a TA can claim, start, or close work. Another TA cannot take over an assigned request. Approval does not change work progress, and closing work does not change its approval decision. Final approval decisions cannot be overwritten through the current application.
+
+Historical status values remain readable. Cancellation, reassignment, and reopening are not available as current workflow actions.
 
 ## Local setup in VS Code
 
-Run everything locally; Docker and custom startup scripts are not needed. Use Node.js 24 and a running PostgreSQL service (PostgreSQL 16 is used for integration tests; the local setup also runs on PostgreSQL 18).
+This guide runs the API and frontend directly on your computer. Docker files are included but are not covered by these instructions.
 
-### 1. Open the project and create a database
+Prerequisites:
 
-Open the repository folder in VS Code and select **Terminal → New Terminal**. New terminal commands below start at the repository root.
+- Git, Node.js 24 with npm, and a running PostgreSQL service.
+- PostgreSQL credentials with permission to create a local database, or an empty database prepared for you. CI uses PostgreSQL 16; development has also been verified with PostgreSQL 18.
+- Internet access to install dependencies. The frontend build also downloads Google Fonts.
 
-In pgAdmin, create `isanpower_local` under **Databases → Create → Database**. Skip this if it already exists. Alternatively, run this once while connected to the `postgres` database:
+### 1. Fork, clone, and create a database
+
+Fork the repository on GitHub, clone your fork, and open the cloned repository folder in VS Code. Forking alone does not download the project to your computer. The commands below assume that new terminals start at the repository root, which contains this README and `apps/`.
+
+Create a local database named `isanpower_local` using pgAdmin, or run the following while connected to the `postgres` database:
 
 ```sql
 CREATE DATABASE isanpower_local;
 ```
 
-### 2. Configure local environment files
+For a first-time review, use a new, empty database. Your local database and accounts are independent of the team's databases; neither records nor credentials are included in a fork.
 
-Create `apps/api/.env` using `apps/api/.env.example`:
+### 2. Configure environment files
+
+Copy `apps/api/.env.example` to `apps/api/.env`. Keep its optional Google settings and configure the local values below:
 
 ```dotenv
 NODE_ENV=development
@@ -58,19 +71,33 @@ DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@127.0.0.1:5432/isanpower_local
 CORS_ORIGIN=http://127.0.0.1:3000
 ```
 
-Use your PostgreSQL username, password, and port. Percent-encode special characters in the URL password. API port `4000` and database port `5432` are different services.
+Replace the database username, password, and port as needed. Percent-encode special characters in the connection URL password. API port `4000` and database port `5432` belong to different services.
 
-Create `apps/web/.env.local`:
+Copy `apps/web/.env.example` to `apps/web/.env.local` and use matching local origins:
 
 ```dotenv
 API_BASE_URL=http://127.0.0.1:4000
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:4000
+APP_BASE_URL=http://127.0.0.1:3000
 ```
 
-Restart the relevant server after changing an environment file. Commit placeholder `.env.example` files only, never real `.env`, `.env.local`, or `.demo-accounts.json` files.
+| Variable | Purpose |
+| --- | --- |
+| `API_BASE_URL` | API address used by the Next.js server |
+| `NEXT_PUBLIC_API_BASE_URL` | Browser-accessible API origin used by public tracking pages |
+| `APP_BASE_URL` | Canonical frontend origin used by the Google sign-in flow |
 
-### 3. Terminal 1: database migrations, accounts, and API
+In development, API CORS allows `http://localhost:3000` and `http://127.0.0.1:3000` explicitly. `CORS_ORIGIN` is used in test/production and must be one exact web origin, not a comma-separated list or `*`.
 
-```powershell
+**Google OAuth is not required to review the core request workflow.** Leave the Google credentials blank and use the seeded local accounts described below. To test Google registration, configure a Google OAuth Web application client using the API `.env.example`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`. With this setup, the redirect URI is `http://127.0.0.1:3000/auth/google/callback`; register it with Google and keep its origin consistent with `APP_BASE_URL`. OAuth secrets belong only in the API environment.
+
+Restart the relevant server after changing environment variables. Set `NEXT_PUBLIC_API_BASE_URL` before a production frontend build. Keep real environment files and generated account credentials out of Git.
+
+### 3. Terminal 1: install dependencies and start the API
+
+From the repository root:
+
+```sh
 cd apps/api
 npm ci
 npx prisma generate
@@ -79,137 +106,149 @@ npm run seed:demo
 npm run dev
 ```
 
-Run `seed:demo` **once per database**. It creates four local accounts with independently generated random passwords, saved in the ignored file `apps/api/.demo-accounts.json`. Open that file privately in VS Code for login credentials. Do not commit or distribute it. Each teammate seeds accounts for their own database.
+These commands are for a new database. For an existing installation, read [Updating an existing database](#updating-an-existing-database) first.
+
+Run `seed:demo` once per new database. It creates four approved local accounts with independently generated random passwords:
 
 | Account | Role |
 | --- | --- |
 | `member@isanpower.test` | Lab Member |
-| `ta@isanpower.test` | TA (Kantee L.) |
-| `ta2@isanpower.test` | TA (Tanon L.), for ownership/concurrent claim demos |
+| `ta@isanpower.test` | TA |
+| `ta2@isanpower.test` | Second TA for ownership checks |
 | `manager@isanpower.test` | Lab Manager |
 
-The seed refuses to overwrite existing accounts, roles, passwords, or its credential file, and refuses production mode. If accounts already exist, use their original credentials and omit the seed command. There is no password reset UI yet.
+Read the passwords privately from `apps/api/.demo-accounts.json`. This file is ignored by Git. Do not commit or distribute it.
 
-Migrations add tables without deleting existing requests. Do not use `prisma migrate reset` on your presentation database. When upgrading, stop the API before generating Prisma Client on Windows to avoid a locked query-engine DLL.
+The seed refuses to overwrite existing demo accounts or its credential file and refuses production mode. If accounts already exist, skip the seed command and use their original credentials. There is no password recovery UI.
 
-Leave Terminal 1 running. Check [API health](http://127.0.0.1:4000/api/health): it should report `status: ok` and `database: connected`.
+Leave this terminal running. Check [API health](http://127.0.0.1:4000/api/health): it should report `status: ok` and `database: connected`.
 
-### 4. Terminal 2: frontend
+### 4. Terminal 2: start the frontend
 
-Open a new terminal at the repository root:
+Open another terminal at the repository root:
 
-```powershell
+```sh
 cd apps/web
 npm ci
 npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-Open [Sign in](http://127.0.0.1:3000/login). After login the server selects the pending page or workspace from the account's database membership and role:
+Open [Sign in](http://127.0.0.1:3000/login), expand **Local demo account**, and enter an account and its generated password. This option is visible in development and hidden in production. Use `npm run dev` for this local review walkthrough.
 
-| Workspace | Route |
-| --- | --- |
-| Member requests | `/workspace/my-requests` |
-| Member submission | `/workspace/requests/new` |
-| TA queue | `/ta/queue` |
-| Manager approvals | `/manager/approvals` |
-| Manager dashboard/reports | `/manager/reports` |
-
-`/` shows the public lab landing page with an overview, workflow guide, and a contact placeholder. Its login links lead to `/login`. Opening another role's route redirects to your own workspace; calling another role's API or Server Action is still denied independently.
+After login, the server selects the workspace from the account's database membership and role.
 
 ### Starting again later
 
-Start PostgreSQL, then run `npm run dev` from `apps/api` and `npm run dev -- --hostname 127.0.0.1 --port 3000` from `apps/web` in separate terminals. Keep both open; Ctrl+C stops each service without deleting data.
+Start PostgreSQL, then run `npm run dev` from `apps/api` and `npm run dev -- --hostname 127.0.0.1 --port 3000` from `apps/web` in separate terminals. Keep both open; Ctrl+C stops each service without deleting database records.
 
-Repeat `npm ci` only when dependencies change. After pulling migrations, stop the API, run `npx prisma generate` and `npx prisma migrate deploy` from `apps/api`, then restart. Do not seed again if accounts exist.
+Run `npm ci` after dependency changes. Apply pending migrations after pulling database changes. Do not seed accounts again if they already exist.
 
-## Approval-first upgrade
+## Updating an existing database
 
-Stop the API before running `npx prisma generate` and `npx prisma migrate deploy` from `apps/api`, then restart it. Back up your database first. Migration `20260920000000_approval_first_workflow` returns **all open requests**, including previously approved/rejected and in-progress work, to pending/submitted and clears their assignees. They must be reviewed and accepted again. Closed and cancelled requests are unchanged.
+Back up the intended database and review all pending migrations before applying them. Stop the API, then run from `apps/api`:
 
-Old approval decisions remain in the database with `supersededAt`. API responses expose the current `decision` separately from `decisionHistory`; the request details show previous decisions. This migration does not delete requests or decision history. Run it once per database, not `prisma migrate reset`.
+```sh
+npm ci
+npx prisma generate
+npx prisma migrate status
+npx prisma migrate deploy
+npm run dev
+```
+
+On Windows, stop the API before generating Prisma Client to avoid a locked query-engine DLL.
+
+**The approval-first migration changes existing open work.** If `20260920000000_approval_first_workflow` has not been applied, it returns every request that is not closed or cancelled to `pending / submitted` and clears its assignee. Previous decisions remain in history as superseded records. Affected requests must be reviewed and claimed again. Closed and cancelled requests are unchanged.
+
+Later migrations add request history and member-management records. Missing historical actions are not reconstructed. Apply all pending migrations before starting the current API.
+
+Do not use `prisma migrate reset` on a development, shared, or presentation database. Do not edit or remove previously applied migration files, including the historical Admin-addition and removal migrations.
+
+## Main routes
+
+| Page | Route |
+| --- | --- |
+| Public landing page | `/` |
+| Sign in | `/login` |
+| Open House | `/open-house` |
+| Visitor submission | `/visit/request` |
+| Visitor tracking | `/visit/track` |
+| Industry collaboration tracking | `/collaboration/track` |
+| Pending membership | `/pending` |
+| Member requests | `/workspace/my-requests` |
+| Member submission | `/workspace/requests/new` |
+| TA queue | `/ta/queue` |
+| TA collaboration submission | `/ta/collaborations/new` |
+| Manager request approvals | `/manager/approvals` |
+| Manager reports | `/manager/reports` |
+| Manager member management | `/manager/members` |
+
+Internal routes require an active account, approved membership, and the appropriate role. Server Actions and the API check authorization independently of the visible controls.
 
 ## Presentation walkthrough
 
-Use **separate browser profiles or different browsers** for Member, TA, and Manager. Tabs in the same browser profile and host share one login cookie; opening three tabs does not create three independent sessions. Alternatively, sign out and sign in sequentially in one browser.
+Use separate browser profiles or different browsers for Member, TA, and Manager. Tabs in one browser profile and host share the login cookie. Alternatively, sign out and sign in sequentially.
 
-1. Member: create a request. It always starts as **Pending / Awaiting approval**; there is no approval checkbox.
-2. TA: the request is visible under **All requests**, but **Assign to myself** is disabled until approval.
-3. Manager: open **Approvals**, review the request, choose **Approve**, write a reason, and save.
-4. TA: open **Ready to accept**, choose **Assign to myself**, then **Start work** and **Mark closed**. Another TA cannot take or update that work.
-5. Member: verify progress and the approval decision/reviewer in the request details.
-6. Repeat with **Reject**. No TA can accept, start, or close that request.
-7. Manager: open **Dashboard / Reports**, filter by creation date (UTC), and export the aggregate CSV.
+1. Member submits a request. It starts as **Pending / Awaiting approval**.
+2. TA verifies the request is visible but **Assign to myself** is disabled.
+3. Manager opens Approvals and approves it with a reason.
+4. TA opens **Ready to accept**, selects **Assign to myself**, then **Start work** and **Mark closed**. Another TA cannot take or update it.
+5. Member checks the final status, approval decision, and timeline.
+6. Repeat with rejection and verify that TA work actions remain blocked.
+7. Manager filters reports by creation date (UTC) and exports the aggregate CSV.
+8. Manager opens Member management to inspect accounts, roles, activation controls, and management history. New Google registrations require OAuth configuration; the seeded accounts are already approved.
 
-Request lists refresh every four seconds while visible, on focus, and manually. Reports refresh on entry and through their refresh button. Failed submissions retain form input and never show saved success. No connected page falls back to mock records.
+Visitors save their private tracking code from the successful submission receipt. For industry collaboration, the submitting TA receives the code and must share it with the external contact manually; no email is sent automatically. Codes are shown only in the creation receipt, so save them before leaving or reloading the page.
 
-## Request history (US-6)
+Request lists refresh every four seconds while visible and on focus. Reports refresh on entry and through their refresh button. Request timelines display Asia/Bangkok timestamps. Older requests show an incomplete-history notice when events were not recorded.
 
-Request details show a chronological timeline of submission, approval decisions,
-TA claim, start and close, with recorded actors and Asia/Bangkok timestamps.
-Managers can search closed requests under **Request approvals → Closed history**.
-Older requests show an incomplete-history notice rather than guessed events.
-Apply migration `20261107010000_request_history` before starting this API version.
-See [US-6 setup, migration and test notes](docs/development/US6-REQUEST-HISTORY.md).
+## API overview
 
-## Authentication scope and limitations
+Local base URL: `http://127.0.0.1:4000`.
 
-This version has password verification and database-backed sessions with server/API role enforcement. It no longer grants permissions from fixed demo identities, an email in a payload, a role header, or a client-side role selector.
+Protected endpoints require `Authorization: Bearer <session token>`. Internal endpoints also require approved membership and the correct role. Health, login, Google start/callback, and public submission/tracking do not require an existing session.
 
-Passwords are stored as salted scrypt hashes. Login returns a random opaque session token; PostgreSQL stores only its SHA-256 hash with an eight-hour expiry. Next.js stores the token in an HttpOnly, SameSite=Lax cookie (Secure in production) and forwards it server-to-server as a Bearer token. Each protected API request reloads the session, active account, and current role. Logout revokes the session. Next.js Server Actions retain their built-in origin protection; do not loosen allowed origins for untrusted sites.
+| Area | Endpoints |
+| --- | --- |
+| Health | `GET /api/health` |
+| Authentication | `POST /api/auth/login`, `GET /api/auth/me`, `POST /api/auth/logout` |
+| Google sign-in | `POST /api/auth/google/start`, `POST /api/auth/google/callback` |
+| Active, approved TA accounts | `GET /api/auth/assignees` (TA only) |
+| Requests | `GET /api/requests`, `POST /api/requests` (Member only), `GET /api/requests/:id` |
+| TA work actions | `PATCH /api/requests/:id/ta-action` |
+| Legacy work-status route | `PATCH /api/requests/:id/status` |
+| Approval decisions | `PATCH /api/requests/:id/approval-status` |
+| Visitor public message | `PATCH /api/requests/:id/public-message` |
+| Reports | `GET /api/requests/reports` |
+| Visitor submission and tracking | `POST /api/visits`, `POST /api/visits/track` |
+| Industry collaboration | `POST /api/requests/industry-collaboration` (TA only), `POST /api/collaborations/track` (public) |
+| Pending registrations | `GET /api/memberships` (Manager only; pending active unassigned accounts by default) |
+| All accounts | `GET /api/memberships?scope=all` (Manager only) |
+| Member approval and management | `POST /api/memberships/:id/approve`, `PATCH /api/memberships/:id`, `GET /api/memberships/:id/history` (Manager only) |
 
-**This is a local presentation authentication implementation, not a complete production identity platform.** Local demo accounts are manually seeded; Google registration creates accounts with pending membership. Lab Managers manage membership approval, roles and account activation with audit history. Password recovery, MFA and a production security review remain outside the current scope. Login throttling is in-memory for one API process. Production requires HTTPS, secure account provisioning, a shared rate limiter, and deployment-specific hardening. Existing request ownership remains email-based; a future email-change feature must migrate ownership consistently. Historical approval values are preserved, but reviewer metadata is not invented for old decisions.
+Next.js keeps the session token in an HttpOnly cookie and forwards it to the API server-to-server. Requester and reviewer identities come from verified sessions. Members can read only their own requests; TAs and Managers can read staff request views. Managers alone can review requests, edit eligible Visitor public messages, and read reports.
 
-## API reference
-
-Base URL: `http://127.0.0.1:4000`. All endpoints except health, password login, and Google start/callback require `Authorization: Bearer <session token>`. Internal endpoints also require APPROVED membership and the correct role.
-
-| Method | Endpoint | Allowed role / purpose |
-| --- | --- | --- |
-| GET | `/api/health` | Public API/database health |
-| POST | `/api/auth/login` | Public; strict `{email, password}` |
-| POST | `/api/auth/google/start` | Public; create a short-lived OAuth attempt bound to the browser |
-| POST | `/api/auth/google/callback` | Public; verify state, binding, code and Google identity, then issue a session |
-| GET | `/api/auth/me` | Verified session account |
-| POST | `/api/auth/logout` | Revoke current session |
-| GET | `/api/auth/assignees` | TA; active TA accounts only |
-| GET | `/api/requests` | Member: own; TA/Manager: all |
-| POST | `/api/requests` | Member; requester comes from session |
-| GET | `/api/requests/:id` | Member: own; TA/Manager: all |
-| PATCH | `/api/requests/:id/ta-action` | TA; self-claim, start, close |
-| PATCH | `/api/requests/:id/status` | TA compatibility route; start/close with identical gates |
-| PATCH | `/api/requests/:id/approval-status` | Manager; approve/reject with reason |
-| PATCH | `/api/requests/:id/public-message` | Manager; edit/clear a decided Visitor request's public message |
-| GET | `/api/requests/reports` | Manager; optional `from`/`to` ISO dates, UTC creation dates |
-
-POST request fields: required `title`, `type`, `description`, `priority`; optional `location`, `neededBy`. Title and description must remain non-empty after trimming (maximum 200 and 4,000 characters). Priority must be explicitly supplied as `low`, `medium`, or `high`; the form initially selects `medium`. The server always sets `requiresApproval=true` and `approvalStatus=submitted`. Sending `requiresApproval`, `requesterEmail`, `role`, or initial statuses is rejected.
-
-TA payloads are `{action: "claim"}`, `{action: "start"}`, or `{action: "close"}`. All require approved requests. Claim assigns only the acting TA; only that TA can start/close in sequence. The removed `assign` action is rejected. The legacy `/status` endpoint applies the same checks.
-
-Manager payload: `{approvalStatus: "approved" | "rejected", reason}`. The reason is trimmed and must contain 1–2000 characters. The server supplies all reviewer metadata. Review applies to active, required requests in `submitted` or `under_review`; a final decision cannot be replaced.
-
-Visitor message editing uses `{publicMessage: string}` (trimmed, at most 2,000 characters; empty clears). Only Visitor-source requests already approved/rejected are eligible, including closed work. The server records the latest editor and time without changing the approval decision or work state. Public tracking still exposes only its existing five fields. See [Visitor message API contract and frontend handoff](docs/development/VISITOR-MESSAGE-API.md).
-
-List filters: `requesterEmail`, `status`, `approvalStatus`, `type`. A Member cannot use a filter to read another Member's data. Unauthenticated requests return 401, wrong-role actions 403, hidden/missing details 404, invalid fields 400, and workflow/concurrency conflicts 409. Updates use atomic state checks; decisions and audit records are saved in one transaction.
-
-See [Request status contract](docs/development/REQUEST-STATUS-CONTRACT.md) for enum and migration details.
+See the development documents below for payloads, validation, permissions, and response contracts.
 
 ## Development and testing
 
 From the repository root:
 
-```powershell
+```sh
 npm --prefix apps/api run lint
 npm --prefix apps/api run typecheck
 npm --prefix apps/api run build
 npm --prefix apps/web run lint
 npm --prefix apps/web run typecheck
 npm --prefix apps/web run test:contracts
+npm --prefix apps/web test
 npm --prefix apps/web run build
 ```
 
-The existing Next.js font setup downloads Google Fonts during a build, so that step requires network access.
+The frontend build downloads Google Fonts and requires network access. A successful production build does not enable the development-only local login form.
 
-For API integration tests, create a **separate database ending in `_test`**, then use a separate terminal:
+API integration tests require a separate database whose name ends in `_test`. Create that database first. Tests apply migrations and delete test records; never point them at your development, shared, or presentation database.
+
+PowerShell example, in a separate terminal:
 
 ```powershell
 cd apps/api
@@ -217,64 +256,105 @@ $env:DATABASE_URL = 'postgresql://postgres:YOUR_PASSWORD@127.0.0.1:5432/isanpowe
 npm test
 ```
 
-Tests apply migrations and delete requests, decisions, users, and sessions between cases. Never use your development/presentation database. Close the test terminal afterward to avoid reusing its database override.
+macOS/Linux example, from the repository root:
 
-Coverage includes password login/logout/expiry, current database roles, unauthenticated access, cross-role actions, spoofed identity fields, Member ownership, rejection of third-party assignment, concurrent claims/decisions, approval gates including the legacy status endpoint, rejection, immutable audit data, and Manager-only reports. Frontend contract tests compare UI, API, and Prisma status definitions. See [local demo notes](docs/development/LOCAL-DEMO.md) for manual checks.
+```sh
+cd apps/api
+DATABASE_URL='postgresql://postgres:YOUR_PASSWORD@127.0.0.1:5432/isanpower_test' npm test
+```
+
+Replace the placeholder credentials. Close the PowerShell test terminal afterward to avoid reusing its database override.
+
+Additional browser and live workflow scripts are listed in `apps/web/package.json`. See each feature document for its database and browser requirements. CI runs API integration tests and frontend unit/contract tests; it does not run every live browser workflow.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
-| Missing `DATABASE_URL` | Create `apps/api/.env`; `apps/web/.env.local` does not configure Prisma. |
-| Database connection/authentication error | Check the PostgreSQL service, password, database name, and database port. |
-| Missing tables or columns | Run `npx prisma migrate deploy` in `apps/api`. |
-| Invalid login | Use the generated password in `apps/api/.demo-accounts.json`; run the seed once if accounts do not exist. |
-| Redirected to another workspace | Your signed-in account has a different role. Sign out or use a separate browser profile. |
-| API connection error | Check port 4000 health and `API_BASE_URL`; restart the web app after env changes. |
-| Port already in use | Stop the previous project server before starting another. |
-| PowerShell blocks `npm.ps1` | Use `npm.cmd` / `npx.cmd`. |
-| Teammate cannot see local requests | Each computer has its own database. Git transfers code, not database records or account credentials. |
+| API cannot connect to PostgreSQL | Check the service, credentials, database name, and port in `apps/api/.env` |
+| Missing tables or columns | Stop the API and apply pending migrations from `apps/api` |
+| Invalid local login | Use the original generated credentials; do not reseed an existing database |
+| Local demo account option is missing | Use `npm run dev`; the password form is hidden in production |
+| Public tracking is unavailable | Check `NEXT_PUBLIC_API_BASE_URL`, API health, and CORS; restart/rebuild the web app after changing its public environment |
+| Google sign-in fails | Check OAuth credentials, registered redirect URI, and matching frontend origin; use Local demo account for the core review |
+| Redirected to another workspace | Check the account's current role and membership |
+| Port already in use | Stop the previous project server |
+| PowerShell blocks `npm.ps1` | Use `npm.cmd` and `npx.cmd` |
+| Teammates cannot see local records | Each local database is independent; Git does not transfer database records |
+
+## Scope and limitations
+
+The application supports Google registration, local demo passwords, database-backed sessions, role enforcement, membership management, and recorded request history.
+
+Current limitations include:
+
+- No password recovery, MFA, membership rejection, or account deletion.
+- No request reassignment, cancellation action, or reopening of final decisions.
+- No automatic email delivery or tracking-code recovery.
+- No confirmed calendar booking or equipment-utilization analytics.
+- Request lists and their filters load authorized records for client-side processing.
+- Login throttling is in memory. Public submission/tracking rate limits use PostgreSQL; deployment-specific proxy configuration still determines which client IP the API sees.
+- Assigned work is not automatically reassigned when a TA loses access.
+
+Production deployment requires HTTPS, correct OAuth and CORS configuration, secure account provisioning, and deployment-specific review. Passing local checks does not verify a deployed environment.
 
 ## Repository structure and team workflow
 
-- `apps/api/src/auth/`: password and session verification.
-- `apps/api/src/routes/`: API endpoints and integration tests.
-- `apps/api/src/controllers/`: validation, approval gates, assignment, reports.
-- `apps/api/prisma/`: schema and additive SQL migrations.
-- `apps/web/src/app/`: login and protected role layouts.
-- `apps/web/src/features/`: Member, TA, Manager, and shared request UI.
-- `apps/web/src/lib/`: server-only session/API clients and shared types.
-- `docs/development/`: setup, status contract, and handoff notes.
+```text
+apps/
+  api/
+    prisma/        Database schema and migrations
+    src/           API, authentication, validation, and integration tests
+  web/
+    public/        Static assets
+    scripts/       Contract and browser workflow tests
+    src/           Pages, components, features, and unit tests
+docs/
+  development/     Feature contracts, setup notes, and verification evidence
+```
 
-Start each feature from the latest merged `main`:
+Dockerfiles, Docker Compose, and GitHub Actions workflows are also included. Generated build files, dependencies, local credentials, and temporary database files are not source documentation.
 
-```powershell
+Start a feature from the latest merged `main`:
+
+```sh
 git switch main
 git pull --ff-only origin main
 git switch -c features/your-feature
 ```
 
-Before committing:
+Run the relevant checks and inspect the staged diff before committing. Keep credentials out of Git. Open a pull request to `main` and coordinate changes to shared schema, migrations, sessions, providers, API clients, and styles with teammates.
 
-```powershell
-git status
-git add --dry-run .
-git add .
-git diff --cached --name-status
-git diff --cached
-git commit -m "feat: describe your change"
-git push -u origin features/your-feature
-```
+## Documentation
 
-`--dry-run` previews only; it does not stage files. Review the staged diff and keep credentials out of Git. Open a pull request to `main`; coordinate shared schema/session/provider changes with teammates. Container/CI files are outside this local implementation; running a local build does not verify deployment.
+Implementation guides:
 
-## Project documents
+- [Frontend guide](apps/web/README.md)
+- [Request status and permissions](docs/development/REQUEST-STATUS-CONTRACT.md)
+- [Roles and migration notes](docs/development/ROLES.md)
+- [Member, TA, and Manager workflow](docs/development/US1-US3-HANDOFF.md)
+- [Visitor backend](docs/development/VISITOR-BACKEND-HANDOFF.md)
+- [Visitor tracking](docs/development/VISITOR-TRACK-HANDOFF.md)
+- [Visitor public-message API](docs/development/VISITOR-MESSAGE-API.md)
+- [Industry collaboration](docs/development/US8-COLLABORATION-HANDOFF.md)
+- [Request history](docs/development/US6-REQUEST-HISTORY.md)
+- [Member management](docs/development/US10-MEMBER-MANAGEMENT.md)
+
+Some handoff notes describe an earlier branch or iteration. For local setup, use this README; for current member-management behavior, use the US-10 guide above. Read older notes alongside their recorded scope and date.
+
+Course documents:
 
 - [Software proposal](docs/Software_Proposal_ISAN888.pdf)
 - [Software requirements](docs/SRS_ISAN888.pdf)
-- [Iteration report](docs/Iteration_Report_ISAN888.pdf)
-- [US-1 / US-2 / US-3 handoff](docs/development/US1-US3-HANDOFF.md)
-- [Frontend guide](apps/web/README.md)
+- [Iteration 1](docs/Iteration_Report_ISAN888.pdf)
+- [Iteration 2](docs/ISP888-Iteration2%20Report-2.pdf)
+- [Iteration 3](docs/ISP888-Iteration3%20Report.pdf)
+- [Iteration 4](docs/ISP888-Iteration4%20Report.pdf)
+- [Iteration 5](docs/ISP888-Iteration5%20Report.pdf)
+
+Course documents record requirements and project progress. Some role and workflow descriptions still need reconciliation with the current implementation.
+
+## Team
 
 | Name | Student ID | GitHub |
 | --- | --- | --- |
