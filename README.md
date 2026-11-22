@@ -57,7 +57,44 @@ The commands below use PowerShell 5.1 on Windows and Terminal with bash/zsh on m
 3. For route A, follow [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/). Use Linux containers and the WSL 2 backend. Enable virtualization/WSL if requested and restart Windows when prompted. Open Docker Desktop and wait for its engine to start.
 4. For route B, download **Node.js 24** from [Node.js downloads](https://nodejs.org/en/download), select Windows Installer (`.msi`) for your architecture, and keep npm and Add to PATH enabled. Install [PostgreSQL for Windows](https://www.postgresql.org/download/windows/) with the server, command-line tools, and pgAdmin. Record the password you choose for the `postgres` database user and the port (normally `5432`). This is a database password, not your Windows password.
 5. Close PowerShell and VS Code completely, then open a new PowerShell window so PATH changes take effect.
-6. Check the tools for your chosen route:
+6. Check the tools for your chosen route after completing either the installers above or the terminal commands below.
+
+**Install from PowerShell (alternative to downloading installers manually).** On supported Windows 10/11, check Windows Package Manager first:
+
+```powershell
+winget --version
+```
+
+If missing, install/update Microsoft's **App Installer** from Microsoft Store, then reopen PowerShell. See [WinGet installation](https://learn.microsoft.com/windows/package-manager/winget/#install-winget). Run these commands one at a time and approve installer/UAC prompts:
+
+```powershell
+winget install --id Git.Git --exact --source winget
+# Optional editor:
+winget install --id Microsoft.VisualStudioCode --exact --source winget
+```
+
+For **route A**, open PowerShell as Administrator for the WSL setup (skip it if WSL 2 is already ready):
+
+```powershell
+wsl --install --no-distribution
+wsl --update
+```
+
+Restart Windows if requested before continuing. Install and open Docker Desktop:
+
+```powershell
+winget install --id Docker.DockerDesktop --exact --source winget
+Start-Process "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
+```
+
+For **route B**, install Node 24 and PostgreSQL instead:
+
+```powershell
+winget install --id OpenJS.NodeJS.24 --exact --source winget
+winget install --id PostgreSQL.PostgreSQL.16 --exact --source winget --interactive
+```
+
+Use PostgreSQL's interactive installer to set and record your own database password, keep port 5432 if free, and include command-line tools/pgAdmin. Node's installer includes npm. These IDs are listed in the [WinGet package catalog](https://github.com/microsoft/winget-pkgs); do not substitute an unversioned Node package without checking its major version. If a package is unavailable for your machine/architecture, use the corresponding official installer above. Close PowerShell and VS Code, reopen them, and run the version checks below. A terminal install may still require approval dialogs, Docker first-launch setup, or a restart.
 
 ```powershell
 git --version
@@ -78,7 +115,70 @@ Route B should print `v24.x.x` and an npm version. We use `npm.cmd` and `npx.cmd
 2. Optionally install [VS Code](https://code.visualstudio.com/download). To enable `code .`, open its Command Palette with Cmd+Shift+P and run **Shell Command: Install 'code' command in PATH**.
 3. For route A, install [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/), selecting Apple silicon or Intel to match your Mac. Open Docker Desktop and wait for the engine.
 4. For route B, install **Node.js 24** using the macOS installer from [Node.js downloads](https://nodejs.org/en/download). Install PostgreSQL using one of the [macOS packages](https://www.postgresql.org/download/macosx/). With the interactive installer, include the server and pgAdmin, record the `postgres` password and port, and start the server. If using Postgres.app or Homebrew instead, use that installation's database role and service commands rather than assuming a `postgres` password exists.
-5. Open a new Terminal and check:
+5. Open a new Terminal and run the checks below after either the installers above or these terminal commands.
+
+**Install from Terminal with Homebrew (alternative to the installers above).** If `brew --version` fails, run the [official Homebrew installer](https://brew.sh/) and follow its printed **Next steps** to add Homebrew to PATH:
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+If Command Line Tools installation opens, complete it first. Open a new Terminal after setup; if `brew` is still missing, run the printed `brew shellenv` command for your installation. Homebrew normally uses `/opt/homebrew` on Apple silicon and `/usr/local` on Intel.
+
+Install shared tools:
+
+```sh
+brew --version
+brew install git
+# Optional editor:
+brew install --cask visual-studio-code
+```
+
+For **route A**:
+
+```sh
+brew install --cask docker-desktop
+open -a Docker
+```
+
+Finish Docker's first-launch setup and wait for its engine. Installing only `brew install docker` provides a CLI without a running Docker Desktop engine.
+
+For **route B**:
+
+```sh
+brew install node@24 postgresql@16
+brew services start postgresql@16
+export PATH="$(brew --prefix node@24)/bin:$(brew --prefix postgresql@16)/bin:$PATH"
+node --version
+npm --version
+psql --version
+```
+
+The PATH command above affects the current terminal. For macOS's default zsh, persist it once:
+
+```sh
+printf '\nexport PATH="%s/bin:%s/bin:$PATH"\n' "$(brew --prefix node@24)" "$(brew --prefix postgresql@16)" >> ~/.zshrc
+source ~/.zshrc
+```
+
+For bash, put the same export line in `~/.bash_profile` instead. Homebrew initializes PostgreSQL with a database administrator role matching your macOS username, rather than automatically creating a `postgres` role/password. On a **new Homebrew database installation**, connect locally:
+
+```sh
+psql -d postgres
+```
+
+Inside `psql`, run the following, entering a new password when asked:
+
+```text
+CREATE ROLE isp888 LOGIN CREATEDB;
+\password isp888
+CREATE DATABASE isanpower_local OWNER isp888;
+\q
+```
+
+For B2, use username `isp888`, that password, and database `isanpower_local` in `DATABASE_URL`. B1 is already complete with this command sequence. If the role/database exists, use its original credentials instead of creating it again. If another PostgreSQL server uses 5432, resolve the service/port conflict before starting this one. Homebrew services run as your user; do not run `sudo brew`.
+
+Package references: [Node 24](https://formulae.brew.sh/formula/node@24), [PostgreSQL 16](https://formulae.brew.sh/formula/postgresql@16), [Docker Desktop](https://formulae.brew.sh/cask/docker-desktop).
 
 ```sh
 git --version
@@ -100,6 +200,27 @@ sudo apt update
 sudo apt install -y git curl ca-certificates
 ```
 
+**Terminal installation for Docker on Ubuntu or Debian (route A, new machine).** Run this only if Docker is not already installed. If conflicting container packages are present, review the official distro guide before changing an existing installation. These commands add Docker's signed apt repository; they are for supported Ubuntu/Debian releases with systemd, not every Linux distribution:
+
+```sh
+. /etc/os-release
+case "$ID" in
+  ubuntu|debian) isp888_docker_distro="$ID" ;;
+  *) printf 'Use the Docker guide for your distribution.\n'; exit 1 ;;
+esac
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL "https://download.docker.com/linux/$isp888_docker_distro/gpg" -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+printf 'Types: deb\nURIs: https://download.docker.com/linux/%s\nSuites: %s\nComponents: stable\nArchitectures: %s\nSigned-By: /etc/apt/keyrings/docker.asc\n' "$isp888_docker_distro" "$VERSION_CODENAME" "$(dpkg --print-architecture)" | sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
+sudo docker info
+sudo docker compose version
+```
+
+Repository instructions: [Ubuntu](https://docs.docker.com/engine/install/ubuntu/) / [Debian](https://docs.docker.com/engine/install/debian/). On other distributions use their official Docker package instructions. A WSL shell without systemd needs its own service setup or Docker Desktop integration; do not run this host-service recipe there blindly.
+
 2. For route A, follow the [Docker Engine installation guide for your distribution](https://docs.docker.com/engine/install/) and install the [Compose plugin](https://docs.docker.com/compose/install/linux/). Start Docker using your distribution's service manager. For systemd distributions:
 
 ```sh
@@ -110,9 +231,12 @@ sudo docker compose version
 
 Follow Docker's [Linux post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/) if you want to run Docker without `sudo`; Docker group membership grants privileged access. Until configured, prefix all route A Docker commands with `sudo`. If using `sudo`, use the same prefix for each command, including `exec` and `logs`.
 
-3. For route B, open [Node.js downloads](https://nodejs.org/en/download), select **Node.js 24**, **Linux**, **nvm**, and **npm**, and run the installation commands shown there. Reopen Terminal and select Node 24:
+3. For route B, install nvm and Node 24 using Terminal. These commands follow the [Node.js Linux download instructions](https://nodejs.org/en/download):
 
 ```sh
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.7/install.sh -o /tmp/isp888-install-nvm.sh
+bash /tmp/isp888-install-nvm.sh
+. "$HOME/.nvm/nvm.sh"
 nvm install 24
 nvm use 24
 nvm alias default 24
@@ -120,7 +244,7 @@ node --version
 npm --version
 ```
 
-The first `nvm` command requires completing the nvm installation from the Node.js page first. Avoid installing an arbitrary distribution `nodejs` package without checking its major version.
+If `nvm` is not found, check whether the installer completed and reopen your shell or source the nvm script as above. Avoid installing an arbitrary distribution `nodejs` package without checking its major version.
 
 4. Install and start PostgreSQL for route B. Ubuntu/Debian example:
 
