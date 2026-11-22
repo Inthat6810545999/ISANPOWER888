@@ -659,6 +659,16 @@ Replace the placeholder credentials. Close the PowerShell test terminal afterwar
 
 Additional browser and live workflow scripts are listed in `apps/web/package.json`. See each feature document for its database and browser requirements. CI runs API integration tests and frontend unit/contract tests; it does not run every live browser workflow.
 
+## Windows setup verification in GitHub Actions
+
+The [Windows README setup workflow](https://github.com/Inthat6810545999/ISANPOWER888/actions/workflows/windows-readme.yml) checks route B on a disposable Windows Server 2025 runner with Windows PowerShell 5.1, Node.js 24, and the runner's PostgreSQL 17 service (within the PostgreSQL 16-or-newer requirement).
+
+Verified on 22 November 2026: [successful Windows setup run](https://github.com/Inthat6810545999/ISANPOWER888/actions/runs/45034326546), using Node.js 24.22.3 and PostgreSQL 17.12. All setup steps and the three role logins passed.
+
+It copies/configures the example environment files, runs the documented `npm.cmd ci`, `npx.cmd prisma generate`, `npx.cmd prisma migrate deploy`, and `npm.cmd run seed:demo` steps, then starts both documented dev commands. Headless Chrome checks local password login and the Member, TA, and Manager redirects; API health must report a connected database. It uses only temporary runner data, with Google credentials blank. Startup logs are retained as an artifact; generated credentials and environment files are not uploaded.
+
+This checks application setup after prerequisites are available. It does not test Windows 10/11 installer dialogs, WinGet/WSL installation, Docker Desktop/route A, or every application workflow. A passing run does not establish that those untested steps passed. See the linked run history for the actual result of each revision.
+
 ## Troubleshooting
 
 | Symptom | Check |
