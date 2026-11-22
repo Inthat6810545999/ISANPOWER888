@@ -43,13 +43,21 @@ This guide runs the API and frontend directly on your computer. Docker files are
 
 Prerequisites:
 
-- Git, Node.js 24 with npm, and a running PostgreSQL service.
+- Git, Node.js 24 with npm, and a running PostgreSQL service. Check with `git --version`, `node -v`, and `npm -v`. PostgreSQL installers (including pgAdmin) are available from [postgresql.org/download](https://www.postgresql.org/download/).
 - PostgreSQL credentials with permission to create a local database, or an empty database prepared for you. CI uses PostgreSQL 16; development has also been verified with PostgreSQL 18.
 - Internet access to install dependencies. The frontend build also downloads Google Fonts.
 
-### 1. Fork, clone, and create a database
+### 1. Clone the repository and create a database
 
-Fork the repository on GitHub, clone your fork, and open the cloned repository folder in VS Code. Forking alone does not download the project to your computer. The commands below assume that new terminals start at the repository root, which contains this README and `apps/`.
+Clone the repository (or your fork) and open the folder in VS Code:
+
+```sh
+git clone https://github.com/Inthat6810545999/ISANPOWER888.git
+cd ISANPOWER888
+code .
+```
+
+Forking alone does not download the project to your computer. The commands below assume that new terminals start at the repository root, which contains this README and `apps/`.
 
 Create a local database named `isanpower_local` using pgAdmin, or run the following while connected to the `postgres` database:
 
@@ -61,7 +69,21 @@ For a first-time review, use a new, empty database. Your local database and acco
 
 ### 2. Configure environment files
 
-Copy `apps/api/.env.example` to `apps/api/.env`. Keep its optional Google settings and configure the local values below:
+Create both environment files from their examples, from the repository root:
+
+```powershell
+# Windows PowerShell
+Copy-Item apps/api/.env.example apps/api/.env
+Copy-Item apps/web/.env.example apps/web/.env.local
+```
+
+```sh
+# macOS / Linux
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Open `apps/api/.env`. Keep its optional Google settings and set the local values below:
 
 ```dotenv
 NODE_ENV=development
@@ -73,7 +95,7 @@ CORS_ORIGIN=http://127.0.0.1:3000
 
 Replace the database username, password, and port as needed. Percent-encode special characters in the connection URL password. API port `4000` and database port `5432` belong to different services.
 
-Copy `apps/web/.env.example` to `apps/web/.env.local` and use matching local origins:
+Open `apps/web/.env.local` and use matching local origins:
 
 ```dotenv
 API_BASE_URL=http://127.0.0.1:4000
@@ -117,7 +139,7 @@ Run `seed:demo` once per new database. It creates four approved local accounts w
 | `ta2@isanpower.test` | Second TA for ownership checks |
 | `manager@isanpower.test` | Lab Manager |
 
-Read the passwords privately from `apps/api/.demo-accounts.json`. This file is ignored by Git. Do not commit or distribute it.
+Read the passwords privately from `apps/api/.demo-accounts.json`, a list of entries with `email`, `role`, and `password`. This file is ignored by Git. Do not commit or distribute it.
 
 The seed refuses to overwrite existing demo accounts or its credential file and refuses production mode. If accounts already exist, skip the seed command and use their original credentials. There is no password recovery UI.
 
@@ -136,6 +158,19 @@ npm run dev -- --hostname 127.0.0.1 --port 3000
 Open [Sign in](http://127.0.0.1:3000/login), expand **Local demo account**, and enter an account and its generated password. This option is visible in development and hidden in production. Use `npm run dev` for this local review walkthrough.
 
 After login, the server selects the workspace from the account's database membership and role.
+
+### 5. Verify the application works
+
+| Check | Expected result |
+| --- | --- |
+| [API health](http://127.0.0.1:4000/api/health) | `{"status":"ok","database":"connected",...}` |
+| [Home page](http://127.0.0.1:3000/) | ISANPOWER888 LAB landing page |
+| [Sign in](http://127.0.0.1:3000/login) | **Sign in with Google**, **Continue as Guest**, and **Local demo account** |
+| Sign in as `member@isanpower.test` | Redirect to `/workspace/my-requests` |
+| Sign in as `ta@isanpower.test` | Redirect to `/ta/queue` |
+| Sign in as `manager@isanpower.test` | Redirect to `/manager/approvals` |
+
+If any check fails, see [Troubleshooting](#troubleshooting).
 
 ### Starting again later
 
