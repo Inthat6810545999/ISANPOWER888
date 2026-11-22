@@ -1,0 +1,99 @@
+name: Windows README setup
+
+on:
+  push:
+    branches: [main, tests/windows-readme]
+    paths:
+      - 'README.md'
+      - 'apps/**'
+      - '.github/workflows/windows-readme.yml'
+      - '.github/scripts/windows-readme-smoke.mjs'
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'apps/**'
+      - '.github/workflows/windows-readme.yml'
+      - '.github/scripts/windows-readme-smoke.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-setup:
+    name: PowerShell 5.1 / Node 24 / PostgreSQL / browser login
+    runs-on: windows-2025
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            apps/api/package-lock.json
+            apps/web/package-lock.json
+      - name: Verify Windows shell and tools
+        run: |
+          if ($PSVersionTable.PSVersion.Major -ne 5) { throw 'Expected Windows PowerShell 5.1' }
+          git --version
+          node --version
+          npm.cmd --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Prepare isolated runner PostgreSQL database
+        run: |
+          # GitHub's Windows 2025 image includes PostgreSQL 17, initially stopped.
+          # Only this disposable runner's database is used; no repository secrets.
+          $service = Get-Service postgresql-x64-17
+          Set-Service $service.Name -StartupType Manual
+          Start-Service $service.Name
+          $env:PGPASSWORD = 'root'
+          & "$env:PGBIN\psql.exe" -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE isanpower_local;'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$env:PGBIN\psql.exe" --version
+      - name: Copy and configure README environment files
+        run: |
+          Copy-Item apps/api/.env.example apps/api/.env
+          Copy-Item apps/web/.env.example apps/web/.env.local
+          @'
+          NODE_ENV=development
+          PORT=4000
+          DATABASE_URL=postgresql://postgres:root@127.0.0.1:5432/isanpower_local
+          CORS_ORIGIN=http://127.0.0.1:3000
+          GOOGLE_CLIENT_ID=
+          GOOGLE_CLIENT_SECRET=
+          GOOGLE_REDIRECT_URI=http://127.0.0.1:3000/auth/google/callback
+          '@ | Set-Content apps/api/.env -Encoding ascii
+          @'
+          API_BASE_URL=http://127.0.0.1:4000
+          NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:4000
+          APP_BASE_URL=http://127.0.0.1:3000
+          '@ | Set-Content apps/web/.env.local -Encoding ascii
+      - name: API - npm ci
+        working-directory: apps/api
+        run: npm.cmd ci
+      - name: API - generate Prisma client
+        working-directory: apps/api
+        run: npx.cmd prisma generate
+      - name: API - deploy migrations
+        working-directory: apps/api
+        run: npx.cmd prisma migrate deploy
+      - name: API - seed local demo accounts
+        working-directory: apps/api
+        run: npm.cmd run seed:demo
+      - name: Web - npm ci
+        working-directory: apps/web
+        run: npm.cmd ci
+      - name: Start README dev commands and verify browser login
+        run: node .github/scripts/windows-readme-smoke.mjs
+      - name: Upload startup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-readme-startup-logs
+          path: .github/test-output/*.log
+          if-no-files-found: ignore
+          retention-days: 7
