@@ -37,65 +37,289 @@ Approval is required before a TA can claim, start, or close work. Another TA can
 
 Historical status values remain readable. Cancellation, reassignment, and reopening are not available as current workflow actions.
 
-## Local setup in VS Code
+## Setup on Windows, macOS, and Linux
 
-This guide runs the API and frontend directly on your computer. Docker files are included but are not covered by these instructions.
+Choose **one** route. Both create a separate database on your computer; no Neon credentials or team Google secrets are needed for the local demo.
 
-Prerequisites:
+| Route | Install on your computer | Where the services run |
+| --- | --- | --- |
+| A: Docker Compose | Git and Docker with Compose v2; VS Code optional | API, web, and PostgreSQL in Docker |
+| B: Native development | Git, Node.js 24 with npm, PostgreSQL 16 or newer; VS Code optional | API, web, and PostgreSQL on your computer |
 
-- Git, Node.js 24 with npm, and a running PostgreSQL service. Check with `git --version`, `node -v`, and `npm -v`. PostgreSQL installers (including pgAdmin) are available from [postgresql.org/download](https://www.postgresql.org/download/).
-- PostgreSQL credentials with permission to create a local database, or an empty database prepared for you. CI uses PostgreSQL 16; development has also been verified with PostgreSQL 18.
-- Internet access to install dependencies. The frontend build also downloads Google Fonts.
+The commands below use PowerShell 5.1 on Windows and Terminal with bash/zsh on macOS/Linux. Linux package examples use Ubuntu/Debian; other distributions need their equivalent package manager. Do not mix Windows paths/tools with a WSL installation: run an entire setup in the same environment.
 
-### 1. Clone the repository and create a database
+### 1. Install the tools for your operating system
 
-Clone the repository (or your fork) and open the folder in VS Code:
+#### Windows
 
-```sh
-git clone https://github.com/Inthat6810545999/ISANPOWER888.git
-cd ISANPOWER888
-code .
+1. Download [Git for Windows](https://git-scm.com/downloads/win), run the installer, and enable Git for command-line applications when asked about PATH.
+2. Optionally install [Visual Studio Code](https://code.visualstudio.com/download). Enable **Add to PATH** in its installer.
+3. For route A, follow [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/). Use Linux containers and the WSL 2 backend. Enable virtualization/WSL if requested and restart Windows when prompted. Open Docker Desktop and wait for its engine to start.
+4. For route B, download **Node.js 24** from [Node.js downloads](https://nodejs.org/en/download), select Windows Installer (`.msi`) for your architecture, and keep npm and Add to PATH enabled. Install [PostgreSQL for Windows](https://www.postgresql.org/download/windows/) with the server, command-line tools, and pgAdmin. Record the password you choose for the `postgres` database user and the port (normally `5432`). This is a database password, not your Windows password.
+5. Close PowerShell and VS Code completely, then open a new PowerShell window so PATH changes take effect.
+6. Check the tools for your chosen route:
+
+```powershell
+git --version
+# Route A:
+docker --version
+docker compose version
+docker info
+# Route B:
+node --version
+npm.cmd --version
 ```
 
-Forking alone does not download the project to your computer. The commands below assume that new terminals start at the repository root, which contains this README and `apps/`.
+Route B should print `v24.x.x` and an npm version. We use `npm.cmd` and `npx.cmd` in Windows examples to avoid the PowerShell `npm.ps1` execution-policy restriction. No execution-policy change is required.
 
-Create a local database named `isanpower_local` using pgAdmin, or run the following while connected to the `postgres` database:
+#### macOS
+
+1. Run `git --version` in Terminal. If macOS prompts you to install Command Line Tools, finish that installation and run the command again.
+2. Optionally install [VS Code](https://code.visualstudio.com/download). To enable `code .`, open its Command Palette with Cmd+Shift+P and run **Shell Command: Install 'code' command in PATH**.
+3. For route A, install [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/), selecting Apple silicon or Intel to match your Mac. Open Docker Desktop and wait for the engine.
+4. For route B, install **Node.js 24** using the macOS installer from [Node.js downloads](https://nodejs.org/en/download). Install PostgreSQL using one of the [macOS packages](https://www.postgresql.org/download/macosx/). With the interactive installer, include the server and pgAdmin, record the `postgres` password and port, and start the server. If using Postgres.app or Homebrew instead, use that installation's database role and service commands rather than assuming a `postgres` password exists.
+5. Open a new Terminal and check:
+
+```sh
+git --version
+# Route A:
+docker --version
+docker compose version
+docker info
+# Route B:
+node --version
+npm --version
+```
+
+#### Linux
+
+1. On Ubuntu/Debian, install Git and download tools:
+
+```sh
+sudo apt update
+sudo apt install -y git curl ca-certificates
+```
+
+2. For route A, follow the [Docker Engine installation guide for your distribution](https://docs.docker.com/engine/install/) and install the [Compose plugin](https://docs.docker.com/compose/install/linux/). Start Docker using your distribution's service manager. For systemd distributions:
+
+```sh
+sudo systemctl enable --now docker
+sudo docker info
+sudo docker compose version
+```
+
+Follow Docker's [Linux post-installation instructions](https://docs.docker.com/engine/install/linux-postinstall/) if you want to run Docker without `sudo`; Docker group membership grants privileged access. Until configured, prefix all route A Docker commands with `sudo`. If using `sudo`, use the same prefix for each command, including `exec` and `logs`.
+
+3. For route B, open [Node.js downloads](https://nodejs.org/en/download), select **Node.js 24**, **Linux**, **nvm**, and **npm**, and run the installation commands shown there. Reopen Terminal and select Node 24:
+
+```sh
+nvm install 24
+nvm use 24
+nvm alias default 24
+node --version
+npm --version
+```
+
+The first `nvm` command requires completing the nvm installation from the Node.js page first. Avoid installing an arbitrary distribution `nodejs` package without checking its major version.
+
+4. Install and start PostgreSQL for route B. Ubuntu/Debian example:
+
+```sh
+sudo apt install -y postgresql postgresql-client
+sudo systemctl enable --now postgresql
+sudo -u postgres psql
+```
+
+Inside the `psql` prompt, set a password for TCP connections without putting it in a shell command:
+
+```text
+\password postgres
+\q
+```
+
+Enter and confirm your own password when prompted; keep it for route B. For a specific supported PostgreSQL version or other Linux distributions, use the [official PostgreSQL packages](https://www.postgresql.org/download/linux/).
+
+### 2. Download the repository once
+
+Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\Downloads" | Out-Null
+Set-Location "$HOME\Downloads"
+git clone https://github.com/Inthat6810545999/ISANPOWER888.git
+Set-Location ISANPOWER888
+Get-ChildItem
+```
+
+macOS/Linux:
+
+```sh
+mkdir -p ~/Downloads
+cd ~/Downloads
+git clone https://github.com/Inthat6810545999/ISANPOWER888.git
+cd ISANPOWER888
+ls
+```
+
+You should see `README.md`, `docker-compose.yml`, and `apps`. This folder is the **repository root**. Optionally run `code .`; if `code` is unavailable, choose **File > Open Folder** in VS Code and select this folder. Open an integrated terminal through **Terminal > New Terminal**.
+
+If the repository already exists, enter its existing root and run `git pull --ff-only` instead of cloning again. If Git reports local changes or diverged history, resolve those before updating; do not delete your work. A fork on GitHub does not download files or database records to your computer.
+
+If you cloned inside another folder named `ISANPOWER888`, your real root may be `C:\Users\first\Downloads\ISANPOWER888\ISANPOWER888`. That is usable: choose the inner folder containing `apps`. Do not clone it again.
+
+Run commands one line at a time and stop if one fails. Copy only commands, not terminal prompts such as `PS C:\...>` or `%`. Code blocks labelled `dotenv`, `dockerfile`, or `sql` contain file contents/SQL, not PowerShell commands. Continue with A or B below.
+
+## Route A: Docker Compose
+
+Use this route for a local review without installing Node.js or PostgreSQL directly on the host. The existing Compose configuration uses PostgreSQL inside Docker and runs API/web in development mode. Initial builds require internet access.
+
+### A1. Create the root environment file
+
+From the repository root, run **only on first setup**:
+
+```powershell
+# Windows PowerShell
+Copy-Item .env.example .env
+notepad .env
+```
+
+```sh
+# macOS/Linux
+cp .env.example .env
+# Open .env in your editor, or use: nano .env
+```
+
+Keep the defaults for an isolated local demo:
+
+```dotenv
+POSTGRES_USER=isp888
+POSTGRES_PASSWORD=devpassword
+POSTGRES_DB=isp888
+POSTGRES_PORT=5432
+API_PORT=4000
+WEB_PORT=3000
+```
+
+`devpassword` is a local demonstration value. If choosing another password, use URL-safe letters/numbers for this Compose template because it interpolates credentials directly into a PostgreSQL URL. Keep your real `.env` private. Do not overwrite an existing `.env` on subsequent runs.
+
+Compose supplies the API/web connection settings itself; the two `apps/*` environment files are for route B and are not needed here. If you previously created `apps/api/.env`, its `DATABASE_URL` is overridden by Compose. This Compose configuration does not consume a root Neon `DATABASE_URL`, and does not forward Google OAuth credentials. Use the local demo accounts for this route.
+
+### A2. Build and start all three services
+
+From the repository root:
+
+```sh
+docker compose up --build -d
+docker compose ps
+docker compose logs --tail=80 api web
+```
+
+Wait for PostgreSQL to become healthy and the API/frontend to finish startup. The API development Dockerfile applies Prisma migrations automatically at startup. A running container alone does not prove the database is connected: open [API health](http://localhost:4000/api/health) and require `"database":"connected"`. If startup fails, inspect the logs and the troubleshooting table before proceeding.
+
+### A3. Create local demo accounts once
+
+After the API is ready, from the repository root:
+
+```sh
+docker compose exec api npm run seed:demo
+```
+
+The API source bind mount writes the credentials to `apps/api/.demo-accounts.json` on your computer. Open that file privately in an editor. On Linux, if the container wrote it as root with mode `0600`, read it locally with `sudo cat apps/api/.demo-accounts.json`; do not loosen its permissions to make it public.
+
+The seed creates these accounts with separate random passwords:
+
+| Email | Role |
+| --- | --- |
+| `member@isanpower.test` | Lab Member |
+| `ta@isanpower.test` | TA |
+| `ta2@isanpower.test` | Second TA |
+| `manager@isanpower.test` | Lab Manager |
+
+Run the seed once per new database. It refuses to overwrite demo accounts or its credential file. Keep the credentials for future logins; there is no password recovery UI. A fresh database also needs a fresh credentials-file location: retain any old file privately with its matching database before preparing another demo.
+
+### A4. Open, stop, and start again
+
+Open [http://localhost:3000/login](http://localhost:3000/login), expand **Local demo account**, and enter an email/password from the generated file. Follow [Verify the application](#verify-the-application) below.
+
+When finished:
+
+```sh
+docker compose stop
+```
+
+Start the same installation again:
+
+```sh
+docker compose up -d
+```
+
+After pulling updated source, read the migration notes first, then use `docker compose up --build -d`. For changes to dependency lockfiles, the existing anonymous dependency volumes may also need refreshing: stop the stack and run `docker compose up --build -d --renew-anon-volumes`. The named `postgres-data` volume holds database records; keep it. Do not use `docker compose down -v` unless you deliberately intend to delete this installation's database.
+
+If another PostgreSQL service already uses host port 5432, set `POSTGRES_PORT=5433` in the root `.env` and recreate the stack. API-to-database traffic still uses `postgres:5432` inside Docker. For different web/API ports, update `WEB_PORT`/`API_PORT`, run `docker compose up -d`, and open the matching browser URLs. Keep web port 3000 for the standard development CORS allowlist; a different web port also requires reviewing the API CORS configuration.
+
+## Route B: Native development
+
+Install Node.js 24 and start PostgreSQL using the OS instructions above. Two terminals will remain running: one for API, one for web. All paths below start from the repository root. On Windows use `npm.cmd`/`npx.cmd`; macOS/Linux use `npm`/`npx`.
+
+### B1. Create a local PostgreSQL database
+
+Use a new database for the first review. With pgAdmin on Windows/macOS:
+
+1. Open pgAdmin and connect to your local PostgreSQL server using the database username/password chosen during installation. A pgAdmin master password, if requested, is separate from the server's password.
+2. If no server is registered, right-click **Servers > Register > Server**. Use any label, then set host `127.0.0.1`, port `5432` (or your installation's port), maintenance database `postgres`, and username `postgres` (or your installation's role).
+3. Right-click **Databases > Create > Database**, enter `isanpower_local`, select your database role as owner, and save.
+4. Verify the new database appears in the tree.
+
+On Linux, or if using command-line PostgreSQL, connect to the maintenance database with a role allowed to create databases:
+
+```sh
+psql -h 127.0.0.1 -U postgres -d postgres
+```
+
+If `psql` is unavailable on Windows, use **SQL Shell (psql)** from the Start menu or pgAdmin. In the SQL prompt execute:
 
 ```sql
 CREATE DATABASE isanpower_local;
 ```
 
-For a first-time review, use a new, empty database. Your local database and accounts are independent of the team's databases; neither records nor credentials are included in a fork.
+Then exit with `\q`. If the database already exists, use it only if it is the intended installation and follow [Updating an existing database](#updating-an-existing-database). Git does not transfer database data between computers.
 
-### 2. Configure environment files
+### B2. Create and edit the application environment files
 
-Create both environment files from their examples, from the repository root:
+Only copy examples on first setup; copying again can overwrite your configuration.
+
+Windows PowerShell, from the repository root:
 
 ```powershell
-# Windows PowerShell
 Copy-Item apps/api/.env.example apps/api/.env
 Copy-Item apps/web/.env.example apps/web/.env.local
+notepad apps/api/.env
+notepad apps/web/.env.local
 ```
+
+macOS/Linux, from the repository root:
 
 ```sh
-# macOS / Linux
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
+# Open both files in your editor, or use nano with each file path.
 ```
 
-Open `apps/api/.env`. Keep its optional Google settings and set the local values below:
+Set these values in `apps/api/.env`, keeping the optional Google entries:
 
 ```dotenv
 NODE_ENV=development
-HOST=127.0.0.1
 PORT=4000
 DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@127.0.0.1:5432/isanpower_local
 CORS_ORIGIN=http://127.0.0.1:3000
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://127.0.0.1:3000/auth/google/callback
 ```
 
-Replace the database username, password, and port as needed. Percent-encode special characters in the connection URL password. API port `4000` and database port `5432` belong to different services.
+Replace `YOUR_PASSWORD` with your database password and adjust username/port as needed. Percent-encode reserved URL characters in the password, for example `@` as `%40`, `#` as `%23`, and `%` as `%25`. Do not copy the placeholder literally. API port 4000 and PostgreSQL port 5432 are different services.
 
-Open `apps/web/.env.local` and use matching local origins:
+Set `apps/web/.env.local` to:
 
 ```dotenv
 API_BASE_URL=http://127.0.0.1:4000
@@ -106,18 +330,27 @@ APP_BASE_URL=http://127.0.0.1:3000
 | Variable | Purpose |
 | --- | --- |
 | `API_BASE_URL` | API address used by the Next.js server |
-| `NEXT_PUBLIC_API_BASE_URL` | Browser-accessible API origin used by public tracking pages |
-| `APP_BASE_URL` | Canonical frontend origin used by the Google sign-in flow |
+| `NEXT_PUBLIC_API_BASE_URL` | Browser-accessible API origin for public tracking |
+| `APP_BASE_URL` | Frontend origin used by Google sign-in |
 
-In development, API CORS allows `http://localhost:3000` and `http://127.0.0.1:3000` explicitly. `CORS_ORIGIN` is used in test/production and must be one exact web origin, not a comma-separated list or `*`.
+Native development reads `apps/api/.env` and `apps/web/.env.local`. The root `.env` is used by Compose; creating only that file does not configure route B. Keep real environment files and `.demo-accounts.json` out of Git. Restart servers after environment changes; public variables must be set before a production frontend build.
 
-**Google OAuth is not required to review the core request workflow.** Leave the Google credentials blank and use the seeded local accounts described below. To test Google registration, configure a Google OAuth Web application client using the API `.env.example`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`. With this setup, the redirect URI is `http://127.0.0.1:3000/auth/google/callback`; register it with Google and keep its origin consistent with `APP_BASE_URL`. OAuth secrets belong only in the API environment.
+Google sign-in is optional for the local review. For Google registration, create your own Google OAuth Web application client and set the API Google ID/secret. Register `http://127.0.0.1:3000/auth/google/callback` as its authorized redirect URI and keep `APP_BASE_URL` consistent. OAuth secrets belong in the API environment. The core demo works with Google credentials blank.
 
-Restart the relevant server after changing environment variables. Set `NEXT_PUBLIC_API_BASE_URL` before a production frontend build. Keep real environment files and generated account credentials out of Git.
+### B3. Terminal 1: install and start the API
 
-### 3. Terminal 1: install dependencies and start the API
+First confirm the current folder contains `README.md` and `apps`. On Windows:
 
-From the repository root:
+```powershell
+cd apps/api
+npm.cmd ci
+npx.cmd prisma generate
+npx.cmd prisma migrate deploy
+npm.cmd run seed:demo
+npm.cmd run dev
+```
+
+On macOS/Linux:
 
 ```sh
 cd apps/api
@@ -128,26 +361,25 @@ npm run seed:demo
 npm run dev
 ```
 
-These commands are for a new database. For an existing installation, read [Updating an existing database](#updating-an-existing-database) first.
+Run the commands one at a time. `npm ci` installs dependencies; `prisma generate` creates the database client; `migrate deploy` creates/updates tables; `seed:demo` creates four approved accounts; `dev` starts the API. Stop at the first error. These migration/seed commands are for a new local database; read the existing-database notes before using them with stored data.
 
-Run `seed:demo` once per new database. It creates four approved local accounts with independently generated random passwords:
+Open `apps/api/.demo-accounts.json` privately for the generated Member, TA, second TA, and Manager passwords listed in route A. Seed only once per new database. Existing demo accounts or credentials cause the seed to refuse changes; use the original matching credentials.
 
-| Account | Role |
-| --- | --- |
-| `member@isanpower.test` | Lab Member |
-| `ta@isanpower.test` | TA |
-| `ta2@isanpower.test` | Second TA for ownership checks |
-| `manager@isanpower.test` | Lab Manager |
+Keep terminal 1 running and open [API health](http://127.0.0.1:4000/api/health). Require `"status":"ok"` and `"database":"connected"` before starting the walkthrough. An HTTP 200 alone does not confirm database connectivity.
 
-Read the passwords privately from `apps/api/.demo-accounts.json`, a list of entries with `email`, `role`, and `password`. This file is ignored by Git. Do not commit or distribute it.
+### B4. Terminal 2: install and start the frontend
 
-The seed refuses to overwrite existing demo accounts or its credential file and refuses production mode. If accounts already exist, skip the seed command and use their original credentials. There is no password recovery UI.
+Open a **new** terminal at the repository root, not inside `apps/api`. In VS Code use **Terminal > New Terminal** and check the folder. If needed, `cd` to the root path identified in step 2.
 
-Leave this terminal running. Check [API health](http://127.0.0.1:4000/api/health): it should report `status: ok` and `database: connected`.
+Windows PowerShell:
 
-### 4. Terminal 2: start the frontend
+```powershell
+cd apps/web
+npm.cmd ci
+npm.cmd run dev -- --hostname 127.0.0.1 --port 3000
+```
 
-Open another terminal at the repository root:
+macOS/Linux:
 
 ```sh
 cd apps/web
@@ -155,28 +387,29 @@ npm ci
 npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-Open [Sign in](http://127.0.0.1:3000/login), expand **Local demo account**, and enter an account and its generated password. This option is visible in development and hidden in production. Use `npm run dev` for this local review walkthrough.
+Wait for Next.js to report ready. Open [Sign in](http://127.0.0.1:3000/login), expand **Local demo account**, and use your generated credentials. The local password form appears only in development. Keep both terminals open while using the application.
 
-After login, the server selects the workspace from the account's database membership and role.
+### B5. Stop and start again later
 
-### 5. Verify the application works
+Press Ctrl+C in both terminals to stop API/web; database records remain. On Windows, if asked `Terminate batch job (Y/N)?`, enter `Y` to stop that process.
+
+For the next session, start PostgreSQL, run `npm.cmd run dev` in `apps/api` on Windows (or `npm run dev` on macOS/Linux), then run the frontend dev command from B4 in a second terminal. Do not clone again, overwrite `.env`, or seed again. After dependency changes, stop the servers and run `npm ci` in each affected package (Windows: `npm.cmd ci`). After schema updates, follow the migration section below.
+
+## Verify the application
+
+Use the browser host for your chosen route consistently: route A defaults to `localhost`, route B uses `127.0.0.1`. They have separate browser cookies.
 
 | Check | Expected result |
 | --- | --- |
-| [API health](http://127.0.0.1:4000/api/health) | `{"status":"ok","database":"connected",...}` |
-| [Home page](http://127.0.0.1:3000/) | ISANPOWER888 LAB landing page |
-| [Sign in](http://127.0.0.1:3000/login) | **Sign in with Google**, **Continue as Guest**, and **Local demo account** |
-| Sign in as `member@isanpower.test` | Redirect to `/workspace/my-requests` |
-| Sign in as `ta@isanpower.test` | Redirect to `/ta/queue` |
-| Sign in as `manager@isanpower.test` | Redirect to `/manager/approvals` |
+| `/api/health` on API port 4000 | `{"status":"ok","database":"connected",...}` |
+| `/` on web port 3000 | ISANPOWER888 LAB landing page |
+| `/login` | Google, Guest, and Local demo account options in development |
+| Log in as `member@isanpower.test` | Redirect to `/workspace/my-requests` |
+| Log in as `ta@isanpower.test` | Redirect to `/ta/queue` |
+| Log in as `manager@isanpower.test` | Redirect to `/manager/approvals` |
 
-If any check fails, see [Troubleshooting](#troubleshooting).
+A new database initially contains accounts after seeding, not the team's existing requests. Create a request using the presentation walkthrough below to populate demonstration data. If a check fails, use [Troubleshooting](#troubleshooting).
 
-### Starting again later
-
-Start PostgreSQL, then run `npm run dev` from `apps/api` and `npm run dev -- --hostname 127.0.0.1 --port 3000` from `apps/web` in separate terminals. Keep both open; Ctrl+C stops each service without deleting database records.
-
-Run `npm ci` after dependency changes. Apply pending migrations after pulling database changes. Do not seed accounts again if they already exist.
 
 ## Updating an existing database
 
@@ -190,7 +423,7 @@ npx prisma migrate deploy
 npm run dev
 ```
 
-On Windows, stop the API before generating Prisma Client to avoid a locked query-engine DLL.
+On Windows, replace `npm`/`npx` in the block above with `npm.cmd`/`npx.cmd`, and stop the API before generating Prisma Client to avoid a locked query-engine DLL. This block is for route B; route A runs migrations from the API container on startup, so review migration effects before restarting it.
 
 **The approval-first migration changes existing open work.** If `20260920000000_approval_first_workflow` has not been applied, it returns every request that is not closed or cancelled to `pending / submitted` and clears its assignee. Previous decisions remain in history as superseded records. Affected requests must be reviewed and claimed again. Closed and cancelled requests are unchanged.
 
@@ -306,6 +539,20 @@ Additional browser and live workflow scripts are listed in `apps/web/package.jso
 
 | Symptom | Check |
 | --- | --- |
+| `npm` / `npx` / `node` is not recognized | Install Node.js 24 with npm, then close and reopen PowerShell and VS Code. Run `node -v` and `npm.cmd -v`. On Windows inspect `Get-Command node` and `where.exe npm`; if missing, repair the Node installer/PATH. Do not continue migration commands until this works. |
+| `npm.ps1 cannot be loaded` / scripts disabled | Use `npm.cmd` and `npx.cmd` for every Windows npm/npx command; no policy change is needed. |
+| `git` / `code` is not recognized | Install Git and reopen the terminal. For VS Code, enable its PATH command or open the repository through File > Open Folder. |
+| `destination path ... already exists` | The clone already exists. Enter the folder containing `apps` and README; do not clone inside it again. |
+| `ENOENT ... package.json` | Check your current directory with `Get-Location` (Windows) or `pwd` (macOS/Linux). API commands belong in `apps/api`; frontend commands in `apps/web`. |
+| `docker` is not recognized / daemon unavailable | Install Docker for the chosen OS, start its engine, reopen the terminal, and require `docker info` to succeed. On Linux check Docker permissions/service; on Windows check WSL 2 and Linux containers. |
+| Database `isanpower_local` does not exist / Prisma P1003 | Create the database in B1 and use its exact name in `apps/api/.env`. Route A uses `isp888` by default. |
+| Password authentication failed / Prisma P1000 | Use the database role/password, not the Windows or pgAdmin master password; check URL escaping. |
+| Prisma P1001 / connection refused | Start PostgreSQL and verify the host/port. For Compose inspect `docker compose ps` and `docker compose logs --tail=80 postgres api`. |
+| Prisma engine DLL locked / EPERM on Windows | Stop the API process using Ctrl+C before `npx.cmd prisma generate`; close any other process using that generated client, then retry. |
+| Demo seed says accounts or credential file exist | Use the existing matching `.demo-accounts.json`; do not repeatedly seed or delete credentials for an existing database. Prepare a separate empty database if you need a fresh demo. |
+| Docker dependency errors after pulling lockfile changes | Stop the stack, then `docker compose up --build -d --renew-anon-volumes`; preserve the named PostgreSQL volume. |
+| `psql` is not recognized on Windows | Use SQL Shell (psql) from Start, or use pgAdmin's Query Tool. PostgreSQL command-line binaries may not be on PATH. |
+| Linux `nvm` is not found | Complete the nvm installer linked by Node.js, reopen your shell, and select Node 24 before npm commands. |
 | API cannot connect to PostgreSQL | Check the service, credentials, database name, and port in `apps/api/.env` |
 | Missing tables or columns | Stop the API and apply pending migrations from `apps/api` |
 | Invalid local login | Use the original generated credentials; do not reseed an existing database |
@@ -313,7 +560,7 @@ Additional browser and live workflow scripts are listed in `apps/web/package.jso
 | Public tracking is unavailable | Check `NEXT_PUBLIC_API_BASE_URL`, API health, and CORS; restart/rebuild the web app after changing its public environment |
 | Google sign-in fails | Check OAuth credentials, registered redirect URI, and matching frontend origin; use Local demo account for the core review |
 | Redirected to another workspace | Check the account's current role and membership |
-| Port already in use | Stop the previous project server |
+| Port already in use / EADDRINUSE | Identify the listener first: `Get-NetTCPConnection -LocalPort 3000` on Windows or `lsof -i :3000` on macOS/Linux (if installed). Stop the previous project process with Ctrl+C. For a Docker PostgreSQL port conflict, change root `POSTGRES_PORT` as described in A4. |
 | PowerShell blocks `npm.ps1` | Use `npm.cmd` and `npx.cmd` |
 | Teammates cannot see local records | Each local database is independent; Git does not transfer database records |
 
@@ -355,7 +602,7 @@ Start a feature from the latest merged `main`:
 ```sh
 git switch main
 git pull --ff-only origin main
-git switch -c features/your-feature
+git switch -c codex/your-feature
 ```
 
 Run the relevant checks and inspect the staged diff before committing. Keep credentials out of Git. Open a pull request to `main` and coordinate changes to shared schema, migrations, sessions, providers, API clients, and styles with teammates.
